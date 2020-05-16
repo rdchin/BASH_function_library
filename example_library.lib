@@ -25,7 +25,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-05-15 20:43"
+VERSION="2020-05-15 22:47"
 THIS_FILE="example_library.lib"
 TEMP_FILE=$THIS_FILE"_temp.txt"
 GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
@@ -75,6 +75,11 @@ GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
 ## (After each edit made, please update Code History and VERSION.)
 ##
 ## 2020-05-15 *f_test_connection changed message from "Internet" to "Network".
+##            *f_main_menu, f_create_show_menu, f_update_menu_txt/gui added
+##             unique TEMP_FILE name to prevent over-writing.
+##            *f_update_menu_txt/gui changed f_menu_txt/gui to be unique
+##             with each file $GENERATED_FILE so you can have several sub-menus
+##             open simultaneously each with a unique f_menu_txt/gui function names.
 ##
 ## 2020-05-14 *f_yn_question fixed bug where temp file was undefined.
 ##            *msg_ui_str_nok, f_msg_txt_str_nok changed wait time
@@ -1567,7 +1572,7 @@ f_msg_txt_file_nok () {
 # |        Function f_menu_arrays          |
 # +----------------------------------------+
 #
-#     Rev: 2020-05-14
+#     Rev: 2020-05-15
 #  Inputs: $1=file of menu choice strings.
 #    Uses: ARRAY_NUM, ARRAY_NAME, ARRAY_VALUE, TEMP_FILE, XSTR.
 # Outputs: MAX_CHOICE_LENGTH. arrays CHOICE(n), SUMMARY(n), FUNC(n). 
@@ -1668,11 +1673,12 @@ f_menu_arrays () {
 # |        Function f_update_menu_txt      |
 # +----------------------------------------+
 #
-#     Rev: 2020-05-14
+#     Rev: 2020-05-15
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #          $2=GENERATED_FILE.
 #          $3=Menu Title.
 #          $4=MAX_CHOICE_LENGTH.
+#          $5=TEMP_FILE
 #    Uses: X, Y, XNUM, YNUM, ARRAY_NAME, ARRAY_LEN, PAD, CHOICE.
 # Outputs: None.
 #
@@ -1682,8 +1688,8 @@ f_update_menu_txt () {
       echo "#" >>$2
       grep --max-count=1 Copyright $THIS_FILE >>$2
       echo "#" >>$2
-      echo "# Usage: bash example_library.lib" >>$2
-      echo "#        (not sh example_library.lib)" >>$2
+      echo "# Usage: bash sample_library.lib" >>$2
+      echo "#        (not sh sample_library.lib)" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
       echo "# |        Default Variable Values         |" >>$2
@@ -1694,7 +1700,7 @@ f_update_menu_txt () {
       echo "#***********************************CAUTION***********************************" >>$2
       echo "# Any edits made to this code will be lost since this code is" >>$2
       echo "# automatically generated and updated by running the script," >>$2
-      echo "# \"example_library.lib\" which contains data for the menu." >>$2
+      echo "# \"sample_library.lib\" which contains data for the menu." >>$2
       echo "#***********************************CAUTION***********************************" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
@@ -1705,7 +1711,8 @@ f_update_menu_txt () {
       echo "#    Uses: X, MENU_TITLE, ARRAY_NAME, ARRAY_LEN, CHOICE, SUMMARY, FUNC." >>$2
       echo "# Outputs: None." >>$2
       echo "#" >>$2
-      echo "f_menu_txt () {" >>$2
+      EXT=$(echo $2 | sed 's|\/|-|g')
+      echo "f_menu_txt$EXT () {" >>$2
       echo "      . $ARRAY_FILE   # invoke the necessary files". >>$2
       echo "      #" >>$2
       echo "      CHOICE=\"\"  # Initialize variable." >>$2
@@ -1728,7 +1735,7 @@ f_update_menu_txt () {
       ARRAY_NAME="CHOICE"
       ARRAY_LEN=$(eval "echo \$\{#$ARRAY_NAME[@]\}")
       ARRAY_LEN=$(eval echo $ARRAY_LEN)
-      TEMP_FILE=$THIS_DIR/$THIS_FILE"_temp.txt"
+      TEMP_FILE=$5
       #
       for (( XNUM=1; XNUM<=${ARRAY_LEN}; XNUM++ ));
           do
@@ -1818,12 +1825,13 @@ f_update_menu_txt () {
 # |        Function f_update_menu_gui      |
 # +----------------------------------------+
 #
-#     Rev: 2020-05-14
+#     Rev: 2020-05-15
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #          $2=GENERATED_FILE.
 #          $3=Menu Title.
 #          $4=MAX_LENGTH
 #          $5=MAX_LINES
+#          $6=TEMP_FILE
 #    Uses: GENERATED_FILE, ARRAY_NAME, ARRAY_LEN, XNUM.
 # Outputs: None.
 #
@@ -1833,8 +1841,8 @@ f_update_menu_gui () {
       echo "#" >>$2
       grep --max-count=1 Copyright $THIS_FILE >>$2
       echo "#" >>$2
-      echo "# Usage: bash example_library.lib" >>$2
-      echo "#        (not sh example_library.lib)" >>$2
+      echo "# Usage: bash sample_library.lib" >>$2
+      echo "#        (not sh sample_library.lib)" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
       echo "# |        Default Variable Values         |" >>$2
@@ -1845,7 +1853,7 @@ f_update_menu_gui () {
       echo "#***********************************CAUTION***********************************" >>$2
       echo "# Any edits made to this code will be lost since this code is" >>$2
       echo "# automatically generated and updated by running the script," >>$2
-      echo "# \"example_library.lib\" which contains data for the Main menu." >>$2
+      echo "# \"sample_library.lib\" which contains data for the Main menu." >>$2
       echo "#***********************************CAUTION***********************************" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
@@ -1857,7 +1865,8 @@ f_update_menu_gui () {
       echo "#    Uses: VERSION, THIS_FILE, CHOICE, SUMMARY, MENU_TITLE." >>$2
       echo "# Outputs: None." >>$2
       echo "#" >>$2
-      echo "f_menu_gui () {" >>$2
+      EXT=$(echo $2 | sed 's|\/|-|g')
+      echo "f_menu_gui$EXT () {" >>$2
       echo "      . $ARRAY_FILE   # invoke the necessary files". >>$2
       echo "      #" >>$2
       echo "      # CHOICE=\"\"  # Initialize variable." >>$2
@@ -1903,7 +1912,8 @@ f_update_menu_gui () {
            ;;
       esac
       #
-      TEMP_FILE=$THIS_DIR/$THIS_FILE"_temp.txt"
+      #TEMP_FILE=$THIS_DIR/$THIS_FILE"_temp.txt"
+      TEMP_FILE=$6
       ARRAY_NAME="CHOICE"
       ARRAY_LEN=$(eval "echo \$\{#$ARRAY_NAME[@]\}")
       ARRAY_LEN=$(eval echo $ARRAY_LEN)
@@ -1953,7 +1963,7 @@ f_update_menu_gui () {
 # |          Function f_main_menu          |
 # +----------------------------------------+
 #
-#     Rev: 2020-04-20
+#     Rev: 2020-05-15
 #  Inputs: None.
 #    Uses: ARRAY_FILE, GENERATED_FILE, MENU_TITLE.
 # Outputs: None.
@@ -1965,10 +1975,11 @@ f_main_menu () { # Create and display the Main Menu.
       f_menu_arrays $ARRAY_FILE
       #
       # Create generated menu script from array data.
-      GENERATED_FILE="$THIS_DIR/$THIS_FILE_menu_generated.lib"
+      GENERATED_FILE=$THIS_DIR/$THIS_FILE"_menu_main_generated.lib"
       MENU_TITLE="Main_Menu"  # Menu title must substitute underscores for spaces
+      TEMP_FILE=$THIS_DIR/$THIS_FILE"_menu_main_temp.txt"
       #
-      f_create_show_menu $GUI $GENERATED_FILE $MENU_TITLE $MAX_LENGTH $MAX_LINES $MAX_CHOICE_LENGTH
+      f_create_show_menu $GUI $GENERATED_FILE $MENU_TITLE $MAX_LENGTH $MAX_LINES $MAX_CHOICE_LENGTH $TEMP_FILE
       #
 } # End of function f_main_menu.
 #
@@ -1976,13 +1987,14 @@ f_main_menu () { # Create and display the Main Menu.
 # |       Function f_create_show_menu      |
 # +----------------------------------------+
 #
-#     Rev: 2020-04-20
+#     Rev: 2020-05-15
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #          $2=GENERATED_FILE.
 #          $3=Menu Title.
 #          $4=MAX_LENGTH.
 #          $5=MAX_LINES.
 #          $6=MAX_CHOICE_LENGTH
+#          $7=TEMP_FILE
 #    Uses: GENERATED_FILE, ARRAY_NAME, ARRAY_LEN, XNUM.
 # Outputs: None.
 #
@@ -1990,23 +2002,26 @@ f_create_show_menu () {
       #
       case $1 in
            "dialog" | "whiptail")
-              f_update_menu_gui $1 $2 $3 $4 $5
+              f_update_menu_gui $1 $2 $3 $4 $5 $7
            ;;
            "text")
-              f_update_menu_txt $1 $2 $3 $6
+              f_update_menu_txt $1 $2 $3 $6 $7
            ;;
       esac
       #
-      . $2  # Invoke Generated file.
+      . $2  # Invoke Generated File.
       #
       # Use generated menu script to display menu.
+      # Create a unique function name extension used in the Generated File.
+      EXT=$(echo $2 | sed 's|\/|-|g')
+      #
       case $1 in
            "dialog" | "whiptail") 
-              f_menu_gui $1 $3
+              f_menu_gui$EXT $1 $3
               clear  # Clear screen.
            ;;
            "text")
-              f_menu_txt
+              f_menu_txt$EXT
            ;;
        esac
       #
