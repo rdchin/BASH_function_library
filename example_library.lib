@@ -25,7 +25,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-05-15 22:47"
+VERSION="2020-05-15 23:55"
 THIS_FILE="example_library.lib"
 TEMP_FILE=$THIS_FILE"_temp.txt"
 GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
@@ -1688,8 +1688,8 @@ f_update_menu_txt () {
       echo "#" >>$2
       grep --max-count=1 Copyright $THIS_FILE >>$2
       echo "#" >>$2
-      echo "# Usage: bash sample_library.lib" >>$2
-      echo "#        (not sh sample_library.lib)" >>$2
+      echo "# Usage: bash example_library.lib" >>$2
+      echo "#        (not sh example_library.lib)" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
       echo "# |        Default Variable Values         |" >>$2
@@ -1700,7 +1700,7 @@ f_update_menu_txt () {
       echo "#***********************************CAUTION***********************************" >>$2
       echo "# Any edits made to this code will be lost since this code is" >>$2
       echo "# automatically generated and updated by running the script," >>$2
-      echo "# \"sample_library.lib\" which contains data for the menu." >>$2
+      echo "# \"example_library.lib\" which contains data for the menu." >>$2
       echo "#***********************************CAUTION***********************************" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
@@ -1841,8 +1841,8 @@ f_update_menu_gui () {
       echo "#" >>$2
       grep --max-count=1 Copyright $THIS_FILE >>$2
       echo "#" >>$2
-      echo "# Usage: bash sample_library.lib" >>$2
-      echo "#        (not sh sample_library.lib)" >>$2
+      echo "# Usage: bash example_library.lib" >>$2
+      echo "#        (not sh example_library.lib)" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
       echo "# |        Default Variable Values         |" >>$2
@@ -1853,7 +1853,7 @@ f_update_menu_gui () {
       echo "#***********************************CAUTION***********************************" >>$2
       echo "# Any edits made to this code will be lost since this code is" >>$2
       echo "# automatically generated and updated by running the script," >>$2
-      echo "# \"sample_library.lib\" which contains data for the Main menu." >>$2
+      echo "# \"example_library.lib\" which contains data for the Main menu." >>$2
       echo "#***********************************CAUTION***********************************" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
