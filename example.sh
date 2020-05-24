@@ -9,7 +9,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-05-15 23:55"
+VERSION="2020-05-23 16:15"
 THIS_FILE="example_template.sh"
 TEMP_FILE=$THIS_FILE"_temp.txt"
 GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
@@ -109,6 +109,71 @@ f_script_path () {
       #
 } # End of function f_script_path.
 #
+# +----------------------------------------+
+# |           Function f_do_stuff          |
+# +----------------------------------------+
+#
+#     Rev: 2020-05-23
+#  Inputs: None
+#    Uses: TEMP_FILE.
+# Outputs: None.
+#
+f_do_stuff () {
+      # man dialog --colors
+      # Interpret embedded "\Z" sequences in the Dialog text by the following
+      # character, which tells Dialog to set colors or video attributes:
+      # •   0 through 7 are the ANSI color numbers used in curses: black, red, green,
+      #     yellow, blue, magenta, cyan and white respectively.
+      # •   Bold is set by 'b', reset by 'B'.
+      # •   Reverse is set by 'r', reset by 'R'.
+      # •   Underline is set by 'u', reset by 'U'.
+      # •   The settings are cumulative, e.g., "\Zb\Z1" makes the following text bold
+      #     (perhaps bright) red.
+      # •   Restore normal settings with "\Zn".
+      #
+      # BASH commands to change the color of characters in a terminal.
+      # bold    "$(tput bold)"
+      # black   "$(tput setaf 0)"
+      # red     "$(tput setaf 1)"
+      # green   "$(tput setaf 2)"
+      # yellow  "$(tput setaf 3)"
+      # blue    "$(tput setaf 4)"
+      # magenta "$(tput setaf 5)"
+      # cyan    "$(tput setaf 6)"
+      # white   "$(tput setaf 7)"
+      # reset   "$(tput sgr0)"
+      #
+TEMP_FILE=$THIS_FILE"_temp.txt"
+f_message $GUI "NOK" "0. Start tests" "Starting tests now..."
+# Test 1
+f_message $GUI "OK" "1. String in quotes, expect msgbox-ok" "This is a test of a \Z6software BASH script.\Zn\nI hope it works!"
+#
+# Test 2
+echo "This is the Captain speaking, \"All hands stand-down from Red Alert.\"" >$TEMP_FILE
+echo "Stand-by to receive guests..." >>$TEMP_FILE
+f_message $GUI "OK" "2. Text file, Expect textbox-ok" $TEMP_FILE
+#
+# Test 3
+echo "This is the Captain speaking, \"All hands stand-by for shore leave.\"" >$TEMP_FILE
+echo "Stand-by main martinis..." >>$TEMP_FILE
+f_message $GUI "NOK" "3. Text file, Expect textbox-nok" $TEMP_FILE
+#
+# Test 4 - The quotes around "$STRING" are required.
+STRING=$(echo "This is the Captain speaking, \"All hands to \Z1\ZbRED Alert!\Zn This is not a drill!\"")
+f_message $GUI "OK" "4. String in var, expect msgbox-ok" "$STRING"
+#
+# Test 5
+f_message $GUI "OK" "5. String in quotes, expect msgbox-ok" "This is the Captain speaking, \"All hands to \Z1\ZbRED Alert!\Zn This is not a drill!\""
+#
+# Test 6
+STRING=$(echo "This is the Captain speaking, \"All hands to \Z4\ZbCode Blue!\Zn This is not a drill!\"")
+f_message $GUI "NOK" "6. String in var, expect infobox-nok" "$STRING"
+#
+# Test 7
+f_message $GUI "NOK" "7. String in quotes, expect infobox-nok" "This is the Captain speaking, \"All hands to \Z5\ZbCode Magenta!\Zn This is not a drill!\""
+#
+} # End of function f_do_stuff.
+#
 # **************************************
 # ***     Start of Main Program      ***
 # **************************************
@@ -175,58 +240,7 @@ f_test_environment
 #
 #f_main_menu
 #
-      # man dialog --colors
-      # Interpret embedded "\Z" sequences in the Dialog text by the following
-      # character, which tells Dialog to set colors or video attributes:
-      # •   0 through 7 are the ANSI color numbers used in curses: black, red, green,
-      #     yellow, blue, magenta, cyan and white respectively.
-      # •   Bold is set by 'b', reset by 'B'.
-      # •   Reverse is set by 'r', reset by 'R'.
-      # •   Underline is set by 'u', reset by 'U'.
-      # •   The settings are cumulative, e.g., "\Zb\Z1" makes the following text bold
-      #     (perhaps bright) red.
-      # •   Restore normal settings with "\Zn".
-      #
-      # BASH commands to change the color of characters in a terminal.
-      # bold    "$(tput bold)"
-      # black   "$(tput setaf 0)"
-      # red     "$(tput setaf 1)"
-      # green   "$(tput setaf 2)"
-      # yellow  "$(tput setaf 3)"
-      # blue    "$(tput setaf 4)"
-      # magenta "$(tput setaf 5)"
-      # cyan    "$(tput setaf 6)"
-      # white   "$(tput setaf 7)"
-      # reset   "$(tput sgr0)"
-      #
-TEMP_FILE=$THIS_FILE"_temp.txt"
-f_message $GUI "NOK" "0. Start tests" "Starting tests now..."
-# Test 1
-f_message $GUI "OK" "1. String in quotes, expect msgbox-ok" "This is a test of a \Z6software BASH script.\Zn\nI hope it works!"
-#
-# Test 2
-echo "This is the Captain speaking, \"All hands stand-down from Red Alert.\"" >$TEMP_FILE
-echo "Stand-by to receive guests..." >>$TEMP_FILE
-f_message $GUI "OK" "2. Text file, Expect textbox-ok" $TEMP_FILE
-#
-# Test 3
-echo "This is the Captain speaking, \"All hands stand-by for shore leave.\"" >$TEMP_FILE
-echo "Stand-by main martinis..." >>$TEMP_FILE
-f_message $GUI "NOK" "3. Text file, Expect textbox-nok" $TEMP_FILE
-#
-# Test 4 - The quotes around "$STRING" are required.
-STRING=$(echo "This is the Captain speaking, \"All hands to \Z1\ZbRED Alert!\Zn This is not a drill!\"")
-f_message $GUI "OK" "4. String in var, expect msgbox-ok" "$STRING"
-#
-# Test 5
-f_message $GUI "OK" "5. String in quotes, expect msgbox-ok" "This is the Captain speaking, \"All hands to \Z1\ZbRED Alert!\Zn This is not a drill!\""
-#
-# Test 6
-STRING=$(echo "This is the Captain speaking, \"All hands to \Z4\ZbCode Blue!\Zn This is not a drill!\"")
-f_message $GUI "NOK" "6. String in var, expect infobox-nok" "$STRING"
-#
-# Test 7
-f_message $GUI "NOK" "7. String in quotes, expect infobox-nok" "This is the Captain speaking, \"All hands to \Z5\ZbCode Magenta!\Zn This is not a drill!\""
+f_do_stuff
 #
 clear # Blank the screen. Nicer ending especially if you chose custom colors for this script.
 #

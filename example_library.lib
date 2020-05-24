@@ -25,7 +25,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-05-15 23:55"
+VERSION="2020-05-24 00:42"
 THIS_FILE="example_library.lib"
 TEMP_FILE=$THIS_FILE"_temp.txt"
 GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
@@ -34,15 +34,15 @@ GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
 # |            Brief Description           |
 # +----------------------------------------+
 #
-#@ Brief Description
-#@
-#@ Description goes here.
-#@ 
-#@ Required scripts: first.sh, second.sh, third.sh,
-#@                   example_module_main.lib
-#@
-#@ Usage: bash example.sh
-#@        (not sh example.sh)
+#% Brief Description
+#%
+#% Description goes here.
+#% 
+#% Required scripts: first.sh, second.sh, third.sh,
+#%                   example_module_main.lib
+#%
+#% Usage: bash example.sh
+#%        (not sh example.sh)
 #
 # +----------------------------------------+
 # |             Help and Usage             |
@@ -51,20 +51,20 @@ GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
 #?    Usage: bash example.sh [OPTION]
 #? Examples:
 #?
-#?bash example.sh text       # Use Cmd-line user-interface (80x24 min.).
-#?               dialog     # Use Dialog   user-interface.
-#?               whiptail   # Use Whiptail user-interface.
+#? bash example.sh text       # Use Cmd-line user-interface (80x24 min.).
+#?                 dialog     # Use Dialog   user-interface.
+#?                 whiptail   # Use Whiptail user-interface.
 #?
-#?bash example.sh --help     # Displays this help message.
-#?               -?
+#? bash example.sh --help     # Displays this help message.
+#?                 -?
 #?
-#?bash example.sh --about    # Displays script version.
-#?               --version
-#?               --ver
-#?               -v
+#? bash example.sh --about    # Displays script version.
+#?                 --version
+#?                 --ver
+#?                 -v
 #?
-#?bash example.sh --history  # Displays script code history.
-#?               --hist
+#? bash example.sh --history  # Displays script code history.
+#?                 --hist
 #
 # +----------------------------------------+
 # |           Code Change History          |
@@ -73,6 +73,20 @@ GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2020-05-23 *f_update_menu_txt/gui fixed bugs/typos.
+##            *"Help & Usage" added spaces.
+##            *"Brief Description" changed delimiter.
+##            *f_about, f_code_history, f_help_message added DELIM.
+##
+## 2020-05-22 *f_message, f_msg_txt_file_nok, f_msg_txt_str_nok,
+##             f_msg_ui_file_nok, f_msg_ui_str_nok added variable sleep seconds.
+##
+## 2020-05-20 *f_update_menu_txt/gui cleaned up comments in generated code.
+##
+## 2020-05-18 *f_update_menu/gui/txt cosmetic fixed comments.
+##            *f_main_menu, f_update_menu_gui, f_menu_arrays fixed bug in 
+##             calculating menu width for displaying on screen.
 ##
 ## 2020-05-15 *f_test_connection changed message from "Internet" to "Network".
 ##            *f_main_menu, f_create_show_menu, f_update_menu_txt/gui added
@@ -533,7 +547,7 @@ f_abort () {
 # |          Function f_about          |
 # +------------------------------------+
 #
-#     Rev: 2020-04-28
+#     Rev: 2020-05-24
 #  Inputs: $1=GUI - "text", "dialog" or "whiptail" the preferred user-interface.
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: X.
@@ -554,10 +568,11 @@ f_about () {
       echo "Script: $THIS_FILE. Version: $VERSION" >$TEMP_FILE
       echo >>$TEMP_FILE
       #
-      # Display text (all lines beginning with "#@" but do not print "#@").
-      # sed substitutes null for "#@" at the beginning of each line
+      # Display text (all lines beginning ("^") with "#& " but do not print "#& ").
+      # sed substitutes null for "#& " at the beginning of each line
       # so it is not printed.
-      sed -n 's/^#@//'p $THIS_DIR/$THIS_FILE >> $TEMP_FILE
+      DELIM="^#&"
+      sed -n "s/$DELIM//"p $THIS_DIR/$THIS_FILE >> $TEMP_FILE
       #
       f_message $1 "OK" "About (use arrow keys to scroll up/down/side-ways)" $TEMP_FILE
       #
@@ -567,7 +582,7 @@ f_about () {
 # |      Function f_code_history       |
 # +------------------------------------+
 #
-#     Rev: 2020-04-20
+#     Rev: 2020-05-24
 #  Inputs: $1=GUI - "text", "dialog" or "whiptail" the preferred user-interface.
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: X.
@@ -588,10 +603,11 @@ f_code_history () {
       echo "Script: $THIS_FILE. Version: $VERSION" >$TEMP_FILE
       echo >>$TEMP_FILE
       #
-      # Display text (all lines beginning with "#@" but do not print "#@").
-      # sed substitutes null for "#@" at the beginning of each line
+      # Display text (all lines beginning ("^") with "##" but do not print "##").
+      # sed substitutes null for "##" at the beginning of each line
       # so it is not printed.
-      sed -n 's/^##//'p $THIS_DIR/$THIS_FILE >>$TEMP_FILE
+      DELIM="^##"
+      sed -n "s/$DELIM//"p $THIS_DIR/$THIS_FILE >> $TEMP_FILE
       #
       f_message $1 "OK" "Code History (use arrow keys to scroll up/down/side-ways)" $TEMP_FILE
       #
@@ -601,7 +617,7 @@ f_code_history () {
 # |      Function f_help_message       |
 # +------------------------------------+
 #
-#     Rev: 2020-04-20
+#     Rev: 2020-05-24
 #  Inputs: $1=GUI - "text", "dialog" or "whiptail" the preferred user-interface.
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: X.
@@ -622,10 +638,11 @@ f_help_message () {
       echo "Script: $THIS_FILE. Version: $VERSION" >$TEMP_FILE
       echo >>$TEMP_FILE
       #
-      # Display text (all lines beginning with "#?" but do not print "#?").
+      # Display text (all lines beginning ("^") with "#?" but do not print "#?").
       # sed substitutes null for "#?" at the beginning of each line
       # so it is not printed.
-      sed -n 's/^#?//'p $THIS_DIR/$THIS_FILE >> $TEMP_FILE
+      DELIM="^#?"
+      sed -n "s/$DELIM//"p $THIS_DIR/$THIS_FILE >> $TEMP_FILE
       #
       f_message $1 "OK" "Usage (use arrow keys to scroll up/down/side-ways)" $TEMP_FILE
       #
@@ -869,7 +886,7 @@ f_yn_defaults () {
 # You do not have to worry about the differences in syntax between Dialog
 # and Whiptail or about calculating the box size for each text message.
 #
-#     Rev: 2020-05-14
+#     Rev: 2020-05-22
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -877,6 +894,7 @@ f_yn_defaults () {
 #               to allow reader to read text by using sleep n command.
 #          $3 - Title.
 #          $4 - Text string or text file. 
+#          $5 - (Optional for functions f_msg_ui/txt_file/str_nok) Pause for $5 seconds to allow text to be read.
 #    Uses: None.
 # Outputs: ERROR.
 #   Usage: 1. f_message $GUI "OK" "Test of String in quotes" "This is a test of \Z6cyan software BASH script.\Zn\nI hope it works!"
@@ -920,7 +938,7 @@ f_message () {
                     f_msg_ui_file_ok $1 $2 "$3" "$4" $YBOX $XBOX
                  else
                     # Display contents of text file with a pause for n seconds.
-                    f_msg_ui_file_nok $1 $2 "$3" "$4" $YBOX $XBOX
+                    f_msg_ui_file_nok $1 $2 "$3" "$4" $YBOX $XBOX "$5"
                  fi
                  #
               else
@@ -935,7 +953,7 @@ f_message () {
                     f_msg_ui_str_ok $1 $2 "$3" "$4" $YBOX $XBOX
                  else
                     # Display contents of text string with a pause for n seconds.
-                    f_msg_ui_str_nok $1 $2 "$3" "$4" $YBOX $XBOX
+                    f_msg_ui_str_nok $1 $2 "$3" "$4" $YBOX $XBOX "$5"
                  fi
               fi
               ;;
@@ -956,7 +974,7 @@ f_message () {
                     # Display contents of text file using command "less" <q> to quit.
                     f_msg_txt_file_ok $1 $2 "$3" "$4"
                  else
-                    f_msg_txt_file_nok $1 $2 "$3" "$4"
+                    f_msg_txt_file_nok $1 $2 "$3" "$4" "$5"
                     # Display contents of text file using command "cat" then pause for n seconds.
                  fi
                  #
@@ -969,7 +987,7 @@ f_message () {
                     f_msg_txt_str_ok $1 $2 "$3" "$ZNO"
                  else
                     # Display contents of text string using command "echo -e" then pause for n seconds.
-                    f_msg_txt_str_nok $1 $2 "$3" "$ZNO"
+                    f_msg_txt_str_nok $1 $2 "$3" "$ZNO" "$5"
                  fi
               fi
               #
@@ -1169,7 +1187,7 @@ f_msg_ui_file_ok () {
 # |  Function f_msg_ui_file_nok  |
 # +------------------------------+
 #
-#     Rev: 2020-05-14
+#     Rev: 2020-05-22
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -1179,6 +1197,7 @@ f_msg_ui_file_ok () {
 #          $4 - Text string or text file.
 #          $5 - Box Height in characters.
 #          $6 - Box Width  in characters.
+#          $7 - Pause for $7 seconds to allow text to be read.
 #    Uses: None.
 # Outputs: ERROR. 
 #
@@ -1202,8 +1221,13 @@ f_msg_ui_file_nok () {
                  X=$XSCREEN
               fi
               #
+              if [ -z $7 ] ; then
+                 SEC=$7
+              else
+                 SEC=3
+              fi
               # Dialog boxes "--msgbox" "--infobox" can use option --colors with "\Z" commands for font color bold/normal.
-              dialog --colors --timeout 3 --title "$3" --textbox "$4" $Y $X
+              dialog --colors --timeout "$SEC" --title "$3" --textbox "$4" $Y $X
            ;;
            whiptail)
               # Whiptail only has options --textbox or --msgbox (not --infobox).
@@ -1232,7 +1256,7 @@ f_msg_ui_file_nok () {
 # |Function f_msg_ui_str_box_size|
 # +------------------------------+
 #
-#     Rev: 2020-05-14
+#     Rev: 2020-05-23
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -1268,6 +1292,7 @@ f_msg_ui_str_box_size () {
               YBOX=$(echo $ZNO | sed 's|\\n|%|g'| awk -F '%' '{print NF}')
               #
               # Output string without Dialog "\Z" commands into file $TEMP_FILE for wc processing.
+              # The echo -e option replaces "\n" with actual <CR><LF> for wc to calculate actual longest line length.
               echo -e "$ZNO" > $TEMP_FILE
               #
               # More complex method to calculate longest sentence length,
@@ -1371,7 +1396,7 @@ f_msg_ui_str_ok () {
 # |   Function f_msg_ui_str_nok  |
 # +------------------------------+
 #
-#     Rev: 2020-05-14
+#     Rev: 2020-05-22
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -1381,6 +1406,7 @@ f_msg_ui_str_ok () {
 #          $4 - Text string or text file. 
 #          $5 - Box Height in characters.
 #          $6 - Box Width  in characters.
+#          $7 - Pause for $7 seconds to allow text to be read.
 #    Uses: None.
 # Outputs: ERROR. 
 #
@@ -1406,7 +1432,13 @@ f_msg_ui_str_nok () {
                  X=$XSCREEN
               fi
               #
-              dialog --colors --no-ok --title "$3" --infobox "$4" $Y $X ; sleep 3
+              dialog --colors --no-ok --title "$3" --infobox "$4" $Y $X
+              #
+              if [ -z $7 ] ; then
+                 sleep 3
+              else
+                 sleep "$7"
+              fi
            ;;
            whiptail)
               # Whiptail only has options --textbox or--msgbox (not --infobox).
@@ -1474,14 +1506,15 @@ f_msg_txt_str_ok () {
 # |  Function f_msg_txt_str_nok  |
 # +------------------------------+
 #
-#     Rev: 2020-04-22
+#     Rev: 2020-05-22
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
 #               at end of text but pause n seconds
 #               to allow reader to read text by using sleep n command.
 #          $3 - Title.
-#          $4 - Text string or text file. 
+#          $4 - Text string or text file.
+#          $5 - Pause for $5 seconds to allow text to be read.
 #    Uses: None.
 # Outputs: ERROR. 
 #
@@ -1501,7 +1534,12 @@ f_msg_txt_str_nok () {
       echo -e "$4"
       echo
       echo
-      sleep 3
+      #
+      if [ -z $5 ] ; then
+         sleep 3
+      else
+         sleep "$5"
+      fi
       #
       clear  # Blank the screen.
       #
@@ -1539,7 +1577,7 @@ f_msg_txt_file_ok () {
 # |  Function f_msg_txt_file_nok |
 # +------------------------------+
 #
-#     Rev: 2020-04-22
+#     Rev: 2020-05-22
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -1547,6 +1585,7 @@ f_msg_txt_file_ok () {
 #               to allow reader to read text by using sleep n command.
 #          $3 - Title.
 #          $4 - Text string or text file.
+#          $5 - Pause for $5 seconds to allow text to be read.
 #    Uses: None.
 # Outputs: ERROR. 
 #
@@ -1562,7 +1601,12 @@ f_msg_txt_file_nok () {
       echo
       # Display text file contents.
       cat $4
-      sleep 5
+      if [ -z $5 ] ; then
+         sleep 3
+      else
+         sleep "$5"
+      fi
+      #
       #
       clear  # Blank the screen.
       #
@@ -1572,10 +1616,10 @@ f_msg_txt_file_nok () {
 # |        Function f_menu_arrays          |
 # +----------------------------------------+
 #
-#     Rev: 2020-05-15
+#     Rev: 2020-05-18
 #  Inputs: $1=file of menu choice strings.
 #    Uses: ARRAY_NUM, ARRAY_NAME, ARRAY_VALUE, TEMP_FILE, XSTR.
-# Outputs: MAX_CHOICE_LENGTH. arrays CHOICE(n), SUMMARY(n), FUNC(n). 
+# Outputs: MAX_CHOICE_LENGTH, MAX_SUMMARY_LENGTH, arrays CHOICE(n), SUMMARY(n), FUNC(n). 
 #
 f_menu_arrays () {
       #
@@ -1611,24 +1655,12 @@ f_menu_arrays () {
                esac
             done < $1  # Read lines from file $1.
       #
-      # To get true count of longest sentence (MAX_LENGTH) strip delimeters from $TEMP_FILE.
-      sed "s/$DELIM//g" $TEMP_FILE >$TEMP_FILE"_2.txt" 
-      #
-      # Calculate longest line length in TEMP_FILE to find maximum menu width
-      # for Dialog or Whiptail.
-      # The "Word Count" wc command output will not include the TEMP_FILE name
-      # when you redirect "<$TEMP_FILE" into wc.
-      MAX_LENGTH=$(wc --max-line-length <$TEMP_FILE"_2.txt")
-      #
-      if [ -r $TEMP_FILE"_2.txt" ] ; then
-         rm $TEMP_FILE"_2.txt"
-      fi
-      #
       # Calculate number of lines or Menu Choices to find maximum menu lines 
       # for Dialog or Whiptail.
       MAX_LINES=$(wc --lines <$TEMP_FILE)
       #
       MAX_CHOICE_LENGTH=0
+      MAX_SUMMARY_LENGTH=0
       #
       while read XSTR
             do
@@ -1653,6 +1685,15 @@ f_menu_arrays () {
                ARRAY_VALUE=$(echo $ARRAY_VALUE | tr ' ' '_')
                eval $ARRAY_NAME[$ARRAY_NUM]=$ARRAY_VALUE
                #
+               # Calculate length of next Menu Option Summary string.
+               SUMMARY_LENGTH=${#ARRAY_VALUE}
+               # Save the value of the longest length of the Menu Option Choice.
+               # This is for the text menu justification padding calculations.
+               if [ $SUMMARY_LENGTH -gt $MAX_SUMMARY_LENGTH ] ; then
+                  # Save new maximum string length.
+                  MAX_SUMMARY_LENGTH=$SUMMARY_LENGTH
+               fi
+               #
                # Set array $FUNC=<field-4> or "Function" of XSTR.
                ARRAY_NAME="FUNC"
                ARRAY_VALUE=$(echo $XSTR | awk -F "$DELIM" '{ if ( $3 ) { print $4 }}')
@@ -1673,7 +1714,7 @@ f_menu_arrays () {
 # |        Function f_update_menu_txt      |
 # +----------------------------------------+
 #
-#     Rev: 2020-05-15
+#     Rev: 2020-05-23
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #          $2=GENERATED_FILE.
 #          $3=Menu Title.
@@ -1684,12 +1725,11 @@ f_menu_arrays () {
 #
 f_update_menu_txt () {
       #
+      EXT=$(echo $2 | sed 's|\/|-|g')
+      #
       echo "#!/bin/bash" >$2
       echo "#" >>$2
       grep --max-count=1 Copyright $THIS_FILE >>$2
-      echo "#" >>$2
-      echo "# Usage: bash example_library.lib" >>$2
-      echo "#        (not sh example_library.lib)" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
       echo "# |        Default Variable Values         |" >>$2
@@ -1700,20 +1740,19 @@ f_update_menu_txt () {
       echo "#***********************************CAUTION***********************************" >>$2
       echo "# Any edits made to this code will be lost since this code is" >>$2
       echo "# automatically generated and updated by running the script," >>$2
-      echo "# \"example_library.lib\" which contains data for the menu." >>$2
+      echo "or library file which contains data for the menu." >>$2
       echo "#***********************************CAUTION***********************************" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
-      echo "# |           Function f_menu_txt          |" >>$2
+      echo "# |         Function f_menu_txt$EXT        |" >>$2
       echo "# +----------------------------------------+" >>$2
       echo "#" >>$2
       echo "#  Inputs: $1=GUI" >>$2
       echo "#    Uses: X, MENU_TITLE, ARRAY_NAME, ARRAY_LEN, CHOICE, SUMMARY, FUNC." >>$2
       echo "# Outputs: None." >>$2
       echo "#" >>$2
-      EXT=$(echo $2 | sed 's|\/|-|g')
       echo "f_menu_txt$EXT () {" >>$2
-      echo "      . $ARRAY_FILE   # invoke the necessary files". >>$2
+      echo "      . $ARRAY_FILE   # invoke the necessary files." >>$2
       echo "      #" >>$2
       echo "      CHOICE=\"\"  # Initialize variable." >>$2
       echo "      until [ \"\$CHOICE\" = \"QUIT\" ]" >>$2
@@ -1819,13 +1858,13 @@ f_update_menu_txt () {
       fi
       unset X Y XNUM YNUM MENU_TITLE ARRAY_NAME ARRAY_LEN CHOICE SUMMARY FUNC
       #
-} # End of function f_update_menu_txt.
+} # End of function f_update_menu_txt$EXT.
 #
 # +----------------------------------------+
 # |        Function f_update_menu_gui      |
 # +----------------------------------------+
 #
-#     Rev: 2020-05-15
+#     Rev: 2020-05-20
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #          $2=GENERATED_FILE.
 #          $3=Menu Title.
@@ -1837,12 +1876,11 @@ f_update_menu_txt () {
 #
 f_update_menu_gui () {
       #
+      EXT=$(echo $2 | sed 's|\/|-|g')
+      #
       echo "#!/bin/bash" >$2
       echo "#" >>$2
       grep --max-count=1 Copyright $THIS_FILE >>$2
-      echo "#" >>$2
-      echo "# Usage: bash example_library.lib" >>$2
-      echo "#        (not sh example_library.lib)" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
       echo "# |        Default Variable Values         |" >>$2
@@ -1853,11 +1891,11 @@ f_update_menu_gui () {
       echo "#***********************************CAUTION***********************************" >>$2
       echo "# Any edits made to this code will be lost since this code is" >>$2
       echo "# automatically generated and updated by running the script," >>$2
-      echo "# \"example_library.lib\" which contains data for the Main menu." >>$2
+      echo "or library file which contains data for the menu." >>$2
       echo "#***********************************CAUTION***********************************" >>$2
       echo "#" >>$2
       echo "# +----------------------------------------+" >>$2
-      echo "# |           Function f_menu_gui          |" >>$2
+      echo "# |         Function f_menu_gui$EXT        |" >>$2
       echo "# +----------------------------------------+" >>$2
       echo "#" >>$2
       echo "#  Inputs: \$1=GUI." >>$2
@@ -1865,9 +1903,8 @@ f_update_menu_gui () {
       echo "#    Uses: VERSION, THIS_FILE, CHOICE, SUMMARY, MENU_TITLE." >>$2
       echo "# Outputs: None." >>$2
       echo "#" >>$2
-      EXT=$(echo $2 | sed 's|\/|-|g')
       echo "f_menu_gui$EXT () {" >>$2
-      echo "      . $ARRAY_FILE   # invoke the necessary files". >>$2
+      echo "      . $ARRAY_FILE   # invoke the necessary files." >>$2
       echo "      #" >>$2
       echo "      # CHOICE=\"\"  # Initialize variable." >>$2
       #
@@ -1881,15 +1918,20 @@ f_update_menu_gui () {
       echo "            do    # Start of Menu until loop." >>$2
                            MENU_TITLE=$(echo $3 | tr '_' ' ')
       echo "               MENU_TITLE=\"$MENU_TITLE\"" >>$2
+      #
+      # Pad menu contents width and height to include the menu frame.
+      let XBOX=$4+9
+      let YBOX=$5+9
+      #
       # If screen or window width is greater than MAX_LENGTH_UI (number of characters).
       # Then shrink menu display to fit number of characters.
-      if [ $X -gt $4 ] ; then
-         X=$4
+      if [ $XBOX -le $X ] ; then
+         let X=$XBOX
       fi
       #
       # Pad vertical menu box display for a minimum display area.
-      if [ $Y -gt $5 ] ; then
-         let Y=$5+9
+      if [ $YBOX -le $Y ] ; then
+         let Y=$YBOX
       fi
       #
       # Menu height - actual height of menu options.
@@ -1957,13 +1999,13 @@ f_update_menu_gui () {
       fi
       unset X Y XNUM ARRAY_NAME ARRAY_LEN CHOICE SUMMARY FUNC 
       #
-} # End of function f_update_menu_gui.
+} # End of function f_update_menu_gui$EXT.
 #
 # +----------------------------------------+
 # |          Function f_main_menu          |
 # +----------------------------------------+
 #
-#     Rev: 2020-05-15
+#     Rev: 2020-05-18
 #  Inputs: None.
 #    Uses: ARRAY_FILE, GENERATED_FILE, MENU_TITLE.
 # Outputs: None.
@@ -1973,6 +2015,10 @@ f_main_menu () { # Create and display the Main Menu.
       # Create arrays from data.
       ARRAY_FILE="$THIS_DIR/example_module_main.lib"
       f_menu_arrays $ARRAY_FILE
+      #
+      # Calculate longest line length to find maximum menu width
+      # for Dialog or Whiptail using lengths calculated by f_menu_arrays.
+      let MAX_LENGTH=$MAX_CHOICE_LENGTH+$MAX_SUMMARY_LENGTH
       #
       # Create generated menu script from array data.
       GENERATED_FILE=$THIS_DIR/$THIS_FILE"_menu_main_generated.lib"
