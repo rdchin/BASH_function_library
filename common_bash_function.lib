@@ -2,8 +2,7 @@
 #
 # ©2020 Copyright 2020 Robert D. Chin
 #
-# Usage: bash example.sh
-#        (not sh example.sh)
+# Usage: source common_bash_function.lib
 #
 # +--------------------------------------------------------------------------+
 # |                                                                          |
@@ -25,10 +24,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-06-22 13:42"
-THIS_FILE="example_library.lib"
-TEMP_FILE=$THIS_FILE"_temp.txt"
-GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
+VERSION="2020-06-23 01:06"
 #
 # +----------------------------------------+
 # |            Brief Description           |
@@ -73,6 +69,9 @@ GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2020-06-23 *Do not declare variables THIS_FILE and TEMP_FILE so when this
+##             library is invoked, these variables are not overwritten.
 ##
 ## 2020-06-22 *f_arguments enhanced to allow 1st argument as a directory
 ##             and 2nd argument as UI.
@@ -1947,7 +1946,7 @@ f_update_menu_gui () {
       echo "# or library file which contains data for the menu." >>$2
       echo "#***********************************CAUTION***********************************" >>$2
       echo "#" >>$2
-      echo "# *** Function f_menu_txt$EXT ***" >>$2
+      echo "# *** Function f_menu_gui$EXT ***" >>$2
       echo "#" >>$2
       echo "#  Inputs: \$1=GUI." >>$2
       echo "#          \$2=MENU_TITLE" >>$2
