@@ -24,7 +24,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-07-01 22:57"
+VERSION="2020-07-02 22:57"
 #
 # +----------------------------------------+
 # |            Brief Description           |
@@ -69,6 +69,8 @@ VERSION="2020-07-01 22:57"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2020-07-02 *f_update_menu_txt bug fixed due to ommitting comment mark.
 ##
 ## 2020-07-01 *f_about, f_display_common_TEMPLATE fixed comments.
 ##
@@ -1824,7 +1826,7 @@ f_update_menu_txt () {
       echo "#***********************************CAUTION***********************************" >>$2
       echo "# Any edits made to this code will be lost since this code is" >>$2
       echo "# automatically generated and updated by running the script," >>$2
-      echo "or library file which contains data for the menu." >>$2
+      echo "# or library file which contains data for the menu." >>$2
       echo "#***********************************CAUTION***********************************" >>$2
       echo "#" >>$2
       echo "# *** Function f_menu_txt$EXT ***" >>$2
