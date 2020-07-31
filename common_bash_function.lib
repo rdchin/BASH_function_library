@@ -24,7 +24,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-07-02 22:57"
+VERSION="2020-07-16 15:17"
 #
 # +----------------------------------------+
 # |            Brief Description           |
@@ -70,7 +70,12 @@ VERSION="2020-07-02 22:57"
 ##
 ## (After each edit made, please update Code History and VERSION.)
 ##
-## 2020-07-02 *f_update_menu_txt bug fixed due to ommitting comment mark.
+## 2020-07-16 *f_update_menu_txt bug fixed due to ommitting comment mark.
+##            *f_test connection added a pause to vary the seconds the message is displayed.
+##            *f_yn_question, f_yn_defaults, f_message, f_msg_ui_file_box_size f_msg_ui_str_box_size,
+##             simplified code inputs needed.
+##            *f_create_show_menu changed from "." to "source".
+##            *f_update_menu_txt fixed bug where lack of comment marker "#" caused bug.
 ##
 ## 2020-07-01 *f_about, f_display_common_TEMPLATE fixed comments.
 ##
@@ -420,9 +425,10 @@ f_test_connect_template () {
 # |        Function f_test_connection      |
 # +----------------------------------------+
 #
-#     Rev: 2020-06-03
+#     Rev: 2020-07-16
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
-#          $2 Network name of server. 
+#          $2 - Network name of server. 
+#          $3 - Pause n seconds to read message (Optional).
 #    Uses: None.
 # Outputs: ERROR. 
 #
@@ -432,9 +438,9 @@ f_test_connection () {
       ping -c 1 -q $2 >/dev/null # Ping server address.
       ERROR=$?
       if [ $ERROR -ne 0 ] ; then
-         f_message $1 "NOK" "Ping Test Network Connection" " \n\Z1\Zb  No network connection to $2.\Zn"
+         f_message $1 "NOK" "Ping Test Network Connection" " \n\Z1\Zb  No network connection to $2.\Zn" $3
       else
-         f_message $1 "NOK" "Ping Test Network Connection" "Network connnection to $2 is good."
+         f_message $1 "NOK" "Ping Test Network Connection" "Network connnection to $2 is good." $3
       fi
       #
       clear # Blank the screen.
@@ -744,7 +750,7 @@ f_display_common_TEMPLATE () {
 # |          Function f_yn_question        |
 # +----------------------------------------+
 #
-#     Rev: 2020-05-24
+#     Rev: 2020-07-16
 #  Inputs: $1=GUI - "text", "dialog" or "whiptail" the preferred user-interface.
 #          $2 - "Y" or "N" - the default answer.
 #          $3 - Title string (may be null).
@@ -785,7 +791,7 @@ f_yn_question () {
       case $1 in
            dialog | whiptail)
            # Calculate dialog/whiptail box dimensions $YBOX, $XBOX.
-           f_msg_ui_str_box_size $1 $2 "$3" "$4"
+           f_msg_ui_str_box_size "$4"
       esac
       #
       case $1 in
@@ -872,10 +878,10 @@ f_yn_question () {
                        let NSEN=NSEN+1
                     done < $TEMP_FILE
                     #
+              #       
+              # Display only the question.
               XSTR=$(tail -n 1 $TEMP_FILE)
-              #
-              # Default answer.
-              f_yn_defaults $1 $2 "$3" "$4"
+              f_yn_defaults $1 $2 "$3" "$XSTR"
            ;;
       esac
       #
@@ -885,7 +891,7 @@ f_yn_question () {
 # |    Function f_yn_defaults    |
 # +------------------------------+
 #
-#     Rev: 2020-05-14
+#     Rev: 2020-07-16
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -914,17 +920,20 @@ f_yn_question () {
 #
 f_yn_defaults () {
       #
+      TITLE_STR=$(echo $3 | tr '_' ' ')
+      TEXT_STR=$(echo $4 | tr '_' ' ')
+      #
       case $1 in
            dialog | whiptail)
               case $2 in
                    [Yy] | [Yy][Ee][Ss])
                       # "Yes" is the default answer.
-                      $1 --title "$3" --yesno "$4" $5 $6
+                      $1 --title "$TITLE_STR" --yesno "$TEXT_STR" $5 $6
                       ANS=$?
                    ;;
                    [Nn] | [Nn][Oo])
                       # "No" is the default answer.
-                      $1 --title "$3" --defaultno --yesno "$4" $5 $6
+                      $1 --title "$TITLE_STR" --defaultno --yesno "$TEXT_STR" $5 $6
                       ANS=$?
                    ;;
               esac
@@ -934,7 +943,7 @@ f_yn_defaults () {
               case $2 in
                    [Yy] | [Yy][Ee][Ss])
                       # "Yes" is the default answer.
-                      echo -n "$XSTR (Y/n) "; read ANS
+                      echo -n "$TEXT_STR (Y/n) "; read ANS
                       #
                       case $ANS in
                            [Nn] | [Nn][Oo])
@@ -947,7 +956,7 @@ f_yn_defaults () {
                    ;;
                    [Nn] | [Nn][Oo])
                       # "No" is the default answer.
-                      echo -n "$XSTR (y/N) "; read ANS
+                      echo -n "TEXT_STR (y/N) "; read ANS
                       case $ANS in
                            [Yy] | [Yy][Ee] | [Yy][Ee][Ss])
                               ANS=0  # Yes.
@@ -967,7 +976,7 @@ f_yn_defaults () {
 # |       Function f_message     |
 # +------------------------------+
 #
-#     Rev: 2020-06-03
+#     Rev: 2020-07-16
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -1023,7 +1032,7 @@ f_message () {
                  # If $4 is a text file, then calculate number of lines and length
                  # of sentences to calculate height and width of Dialog box.
                  # Calculate dialog/whiptail box dimensions $YBOX, $XBOX.
-                 f_msg_ui_file_box_size $1 $2 "$3" "$4"
+                 f_msg_ui_file_box_size "$4"
                  #
                  if [ "$2" = "OK" ] ; then
                     # Display contents of text file with an [OK] button.
@@ -1038,7 +1047,7 @@ f_message () {
                  # sentence or multiple sentences delimited by "\n"?
                  # Calculate the length of the longest of sentence.
                  # Calculate dialog/whiptail box dimensions $YBOX, $XBOX.
-                 f_msg_ui_str_box_size $1 $2 "$3" "$4"
+                 f_msg_ui_str_box_size "$4"
                  #
                  if [ "$2" = "OK" ] ; then
                     # Display contents of text string with an [OK] button.
@@ -1183,21 +1192,15 @@ f_msg_color () {
 # |Function f_msg_ui_file_box_size|
 # +-------------------------------+
 #
-#     Rev: 2020-05-14
-#  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
-#          $2 - "OK"  [OK] button at end of text.
-#               "NOK" No [OK] button or "Press Enter key to continue"
-#               at end of text but pause n seconds
-#               to allow reader to read text by using sleep n command.
-#          $3 - Title.
-#          $4 - Text string or text file. 
+#     Rev: 2020-07-16
+#  Inputs: $1 - Text string or text file. 
 #    Uses: None.
 # Outputs: XBOX, YBOX.
 #
 f_msg_ui_file_box_size () {
       #
-      # If $4 is a text file.
-      # Calculate dialog/whiptail box dimensions $X, $Y.
+      # If $1 is a text file.
+      # Calculate dialog/whiptail box dimensions $XBOX, $YBOX.
       #
       # If text file, calculate number of lines and length of sentences.
       # to calculate height and width of Dialog box.
@@ -1205,10 +1208,10 @@ f_msg_ui_file_box_size () {
       # Calculate longest line length in TEMP_FILE to find maximum menu width for Dialog or Whiptail.
       # The "Word Count" wc command output will not include the TEMP_FILE name
       # if you redirect "<$TEMP_FILE" into wc.
-      XBOX=$(wc --max-line-length <$4)
+      XBOX=$(wc --max-line-length <$1)
       #
       # Calculate number of lines or Menu Choices to find maximum menu lines for Dialog or Whiptail.
-      YBOX=$(wc --lines <$4)
+      YBOX=$(wc --lines <$1)
       #
 } # End of function f_msg_ui_file_box_size.
 #
@@ -1342,14 +1345,8 @@ f_msg_ui_file_nok () {
 # |Function f_msg_ui_str_box_size|
 # +------------------------------+
 #
-#     Rev: 2020-05-23
-#  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
-#          $2 - "OK"  [OK] button at end of text.
-#               "NOK" No [OK] button or "Press Enter key to continue"
-#               at end of text but pause n seconds
-#               to allow reader to read text by using sleep n command.
-#          $3 - Title.
-#          $4 - Text string or text file. 
+#     Rev: 2020-07-16
+#  Inputs: $1 - Text string or text file. 
 #    Uses: None.
 # Outputs: XBOX, YBOX, ZNO (string stripped of Dialog "\Z" commands).
 #
@@ -1357,25 +1354,26 @@ f_msg_ui_str_box_size () {
       #
       # Calculate dialog/whiptail box dimensions $X, $Y.
       #
-      # Does $4 string contain "\n"?  Does the string $4 contain multiple sentences?
+      # Does $1 string contain "\n"?  Does the string $4 contain multiple sentences?
       #
       # Debug hint: If the box has the minimum size regardless of length or width of text,
       #             the variable $TEMP_FILE may have been unset (i.e. unset TEMP_FILE).
       #             If the $TEMP_FILE is undefined, you will have a minimum box size.
       #
-      case $4 in
+      case $1 in
            *\n*)
-              # Yes, string $4 contains multiple sentences.
+              # Yes, string $1 contains multiple sentences.
               #
               # Use command "sed" with "-e" to filter out multiple "\Z" commands.
               # Filter out "\Z[0-7]", "\Zb", \ZB", "\Zr", "\ZR", "\Zu", "\ZU", "\Zn".
-              ZNO=$(echo $4 | sed -e 's|\\Z0||g' -e 's|\\Z1||g' -e 's|\\Z2||g' -e 's|\\Z3||g' -e 's|\\Z4||g' -e 's|\\Z5||g' -e 's|\\Z6||g' -e 's|\\Z7||g' -e 's|\\Zb||g' -e 's|\\ZB||g' -e 's|\\Zr||g' -e 's|\\ZR||g' -e 's|\\Zu||g' -e 's|\\ZU||g' -e 's|\\Zn||g')
+              ZNO=$(echo $1 | sed -e 's|\\Z0||g' -e 's|\\Z1||g' -e 's|\\Z2||g' -e 's|\\Z3||g' -e 's|\\Z4||g' -e 's|\\Z5||g' -e 's|\\Z6||g' -e 's|\\Z7||g' -e 's|\\Zb||g' -e 's|\\ZB||g' -e 's|\\Zr||g' -e 's|\\ZR||g' -e 's|\\Zu||g' -e 's|\\ZU||g' -e 's|\\Zn||g')
               #
               # Calculate the length of the longest sentence with the $4 string.
               # How many sentences?
               # Replace "\n" with "%" and then use awk to count how many sentences.
               # Save number of sentences.
-              YBOX=$(echo $ZNO | sed 's|\\n|%|g'| awk -F '%' '{print NF}')
+              # Use wc --lines on TEMP_FILE instead of sed-awk below.
+              #YBOX=$(echo $ZNO | sed 's|\\n|%|g'| awk -F '%' '{print NF}')
               #
               # Output string without Dialog "\Z" commands into file $TEMP_FILE for wc processing.
               # The echo -e option replaces "\n" with actual <CR><LF> for wc to calculate actual longest line length.
@@ -1394,14 +1392,16 @@ f_msg_ui_str_box_size () {
               # The "Word Count" wc command output will not include
               # the TEMP_FILE name if you redirect "<$TEMP_FILE" into wc.
               XBOX=$(wc --max-line-length < $TEMP_FILE)
+              YBOX=$(wc --lines < $TEMP_FILE)
            ;;
            *)
               # Use command "sed" with "-e" to filter out multiple "\Z" commands.
               # Filter out "\Z[0-7]", "\Zb", \ZB", "\Zr", "\ZR", "\Zu", "\ZU", "\Zn".
-              ZNO=$(echo $4 | sed -e 's|\\Z0||g' -e 's|\\Z1||g' -e 's|\\Z2||g' -e 's|\\Z3||g' -e 's|\\Z4||g' -e 's|\\Z5||g' -e 's|\\Z6||g' -e 's|\\Z7||g' -e 's|\\Zb||g' -e 's|\\ZB||g' -e 's|\\Zr||g' -e 's|\\ZR||g' -e 's|\\Zu||g' -e 's|\\ZU||g' -e 's|\\Zn||g')
+              ZNO=$(echo $1 | sed -e 's|\\Z0||g' -e 's|\\Z1||g' -e 's|\\Z2||g' -e 's|\\Z3||g' -e 's|\\Z4||g' -e 's|\\Z5||g' -e 's|\\Z6||g' -e 's|\\Z7||g' -e 's|\\Zb||g' -e 's|\\ZB||g' -e 's|\\Zr||g' -e 's|\\ZR||g' -e 's|\\Zu||g' -e 's|\\ZU||g' -e 's|\\Zn||g')
               #
               # No, line length is $4 string length. 
               XBOX=$(echo -n "$ZNO" | wc -c)
+              # Only one sentence and one line in the $1 string.
               YBOX=1
            ;;
       esac
@@ -1800,7 +1800,7 @@ f_menu_arrays () {
 # |        Function f_update_menu_txt      |
 # +----------------------------------------+
 #
-#     Rev: 2020-06-03
+#     Rev: 2020-07-16
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #          $2=GENERATED_FILE.
 #          $3=Menu Title.
@@ -2158,7 +2158,7 @@ f_menu_main_template () { # Create and display the Main Menu.
 # |       Function f_create_show_menu      |
 # +----------------------------------------+
 #
-#     Rev: 2020-05-15
+#     Rev: 2020-07-16
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #          $2=GENERATED_FILE.
 #          $3=Menu Title.
@@ -2180,7 +2180,7 @@ f_create_show_menu () {
            ;;
       esac
       #
-      . $2  # Invoke Generated File.
+      source $2  # Invoke Generated File.
       #
       # Use generated menu script to display menu.
       # Create a unique function name extension used in the Generated File.
