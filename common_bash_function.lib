@@ -10,7 +10,8 @@
 # |                                                                          |
 # +--------------------------------------------------------------------------+
 #
-# Format: <#@@> <Menu Option> <#@@> <Description of Menu Option> <#@@> <Corresponding function or action or cammand>
+#  Format: <#@@> <Menu Option> <#@@> <Description of Menu Option> <#@@> <Corresponding function or action or cammand>
+# WARNING: Text strings cannot include apostrophes (').
 #
 #@@Exit#@@Exit to command-line prompt.#@@break
 #
@@ -24,7 +25,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-07-16 15:17"
+VERSION="2020-08-06 16:13"
 #
 # +----------------------------------------+
 # |            Brief Description           |
@@ -69,6 +70,12 @@ VERSION="2020-07-16 15:17"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2020-08-06 *f_display_common_TEMPLATE, f_download_library_TEMPLATE,
+##            *f_menu_main_TEMPLATE, f_test_connect_TEMPLATE changed comments
+##             to standize format of template functions.
+##
+## 2020-07-31 *Main bug fix pattern matching code to download Common BASH Library. 
 ##
 ## 2020-07-16 *f_update_menu_txt bug fixed due to ommitting comment mark.
 ##            *f_test connection added a pause to vary the seconds the message is displayed.
@@ -403,7 +410,7 @@ f_test_dash () {
 } # End of function f_test_dash
 #
 # +----------------------------------------+
-# |         Function f_test_connect_template        |
+# |         Function f_test_connect_TEMPLATE        |
 # +----------------------------------------+
 #
 #     Rev: 2020-04-28
@@ -411,7 +418,11 @@ f_test_dash () {
 #    Uses: None.
 # Outputs: None.
 #
-f_test_connect_template () {
+# PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
+#              THIS FUNCTION INTO ANY SCRIPT WHICH DEPENDS ON THE
+#              LIBRARY FILE "common_bash_function.lib".
+#
+f_test_connect_TEMPLATE () {
       #
       # Use ping 8.8.8.8 to test connection.
       # f_test_connection $1 8.8.8.8
@@ -419,7 +430,7 @@ f_test_connect_template () {
       # Use ping www.dropbox.com to test connection.
       f_test_connection $1 www.dropbox.com
       #
-} # End of function f_test_connect_template.
+} # End of function f_test_connect
 #
 # +----------------------------------------+
 # |        Function f_test_connection      |
@@ -709,6 +720,10 @@ f_help_message () {
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: X.
 # Outputs: None.
+#
+# PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
+#              THIS FUNCTION INTO ANY SCRIPT WHICH DEPENDS ON THE
+#              LIBRARY FILE "common_bash_function.lib".
 #
 f_display_common_TEMPLATE () {
       #
@@ -2094,7 +2109,7 @@ f_update_menu_gui () {
 } # End of function f_update_menu_gui.
 #
 # +----------------------------------------+
-# |          Function f_menu_main_template          |
+# |          Function f_menu_main_TEMPLATE          |
 # +----------------------------------------+
 #
 #     Rev: 2020-07-01
@@ -2105,7 +2120,7 @@ f_update_menu_gui () {
 # PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
 #              THIS FUNCTION INTO THE MAIN SCRIPT WHICH WILL CALL IT.
 #
-f_menu_main_template () { # Create and display the Main Menu.
+f_menu_main_TEMPLATE () { # Create and display the Main Menu.
       #
       #THIS_FILE="example.sh"
       GENERATED_FILE=$THIS_DIR/$THIS_FILE"_menu_main_generated.lib"
@@ -2203,7 +2218,7 @@ f_create_show_menu () {
 } # End of function f_create_show_menu.
 #
 # +----------------------------------------+
-# |          f_download_library_template           |
+# |          f_download_library_TEMPLATE           |
 # +----------------------------------------+
 #
 #     Rev: 2020-06-23
@@ -2216,7 +2231,7 @@ f_create_show_menu () {
 #              THIS FUNCTION INTO ANY SCRIPT WHICH DEPENDS ON THE
 #              LIBRARY FILE "common_bash_function.lib".
 #
-f_download_library_template () { # Create and display the Main Menu.
+f_download_library_TEMPLATE () { # Create and display the Main Menu.
       #
       wget --show-progress $1$2
       ERROR=$?
@@ -2240,7 +2255,7 @@ f_download_library_template () { # Create and display the Main Menu.
       echo -n "Press \"Enter\" key to continue" ; read X
       exit 0
       #
-} # End of function f_download_library_template.
+} # End of function f_download_library.
 #
 # PLEASE NOTE: THIS IS A SAMPLE OF A STANDARD MAIN PROGRAM.
 #
@@ -2277,8 +2292,8 @@ f_download_library_template () { # Create and display the Main Menu.
 #    echo
 #    echo "Do you want to download the file: $FILE_DEPENDENCY"
 #    echo -n "from GitHub.com? (Y/n): " ; read ANS
-#    case $2 in
-#         "" | [Yy] | [Yy][Ee][Ss])
+#    case $ANS in
+#         "" | [Yy] | [Yy][Ee] | [Yy][Ee][Ss] )
 #            f_download_library "https://raw.githubusercontent.com/rdchin/BASH_function_library/master/" "common_bash_function.lib"
 #            ;;
 #         *)
