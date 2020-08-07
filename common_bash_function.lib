@@ -25,7 +25,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-08-06 16:13"
+VERSION="2020-08-07 16:24"
 #
 # +----------------------------------------+
 # |            Brief Description           |
@@ -70,6 +70,11 @@ VERSION="2020-08-06 16:13"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2020-08-07 *f_msg_ui_file_nok bug fix for Dialog to exclude "OK" button.
+##            *f_display_common, f_about, f_code_history, f_help_message
+##             updated to add option to display without an "OK" button in Dialog.
+##             However, Whiptail only displays with an "OK" button.
 ##
 ## 2020-08-06 *f_display_common_TEMPLATE, f_download_library_TEMPLATE,
 ##            *f_menu_main_TEMPLATE, f_test_connect_TEMPLATE changed comments
@@ -413,7 +418,7 @@ f_test_dash () {
 # |         Function f_test_connect_TEMPLATE        |
 # +----------------------------------------+
 #
-#     Rev: 2020-04-28
+#     Rev: 2020-08-07
 #  Inputs: $1=GUI - "text", "dialog" or "whiptail" the preferred user-interface.
 #    Uses: None.
 # Outputs: None.
@@ -424,11 +429,15 @@ f_test_dash () {
 #
 f_test_connect_TEMPLATE () {
       #
-      # Use ping 8.8.8.8 to test connection.
-      # f_test_connection $1 8.8.8.8
+      # Test network connection to IP address or web site.
       #
-      # Use ping www.dropbox.com to test connection.
-      f_test_connection $1 www.dropbox.com
+      # Use ping <IP Address> or <URL> <pause secs. to read message>.
+      # Examples:
+      #f_test_connection 192.168.1.1
+      #f_test_connection $1 8.8.8.8 2 (2-second pause to read messages).
+      #f_test_connection $1 www.dropbox.com 1 (1-second pause to read messages).
+      #
+      f_test_connection $1 8.8.8.8 1
       #
 } # End of function f_test_connect
 #
@@ -645,8 +654,10 @@ f_abort () {
 # |          Function f_about          |
 # +------------------------------------+
 #
-#     Rev: 2020-06-27
+#     Rev: 2020-08-07
 #  Inputs: $1=GUI - "text", "dialog" or "whiptail" the preferred user-interface.
+#          $2="NOK", "OK", or null [OPTIONAL] to control display of "OK" button.
+#          $3=Pause $3 seconds [OPTIONAL]. If "NOK" then pause to allow text to be read.
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: DELIM.
 # Outputs: None.
@@ -660,7 +671,7 @@ f_about () {
       # sed substitutes null for "#& " at the beginning of each line
       # so it is not printed.
       DELIM="^#&"
-      f_display_common $1 $DELIM
+      f_display_common $1 $DELIM $2 $3
       #
 } # End of f_about.
 #
@@ -668,8 +679,10 @@ f_about () {
 # |      Function f_code_history       |
 # +------------------------------------+
 #
-#     Rev: 2020-06-27
+#     Rev: 2020-08-07
 #  Inputs: $1=GUI - "text", "dialog" or "whiptail" the preferred user-interface.
+#          $2="NOK", "OK", or null [OPTIONAL] to control display of "OK" button.
+#          $3=Pause $3 seconds [OPTIONAL]. If "NOK" then pause to allow text to be read.
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: DELIM.
 # Outputs: None.
@@ -683,7 +696,7 @@ f_code_history () {
       # sed substitutes null for "##" at the beginning of each line
       # so it is not printed.
       DELIM="^##"
-      f_display_common $1 $DELIM
+      f_display_common $1 $DELIM $2 $3
       #
 } # End of function f_code_history.
 #
@@ -691,8 +704,10 @@ f_code_history () {
 # |      Function f_help_message       |
 # +------------------------------------+
 #
-#     Rev: 2020-06-27
+#     Rev: 2020-08-07
 #  Inputs: $1=GUI - "text", "dialog" or "whiptail" the preferred user-interface.
+#          $2="NOK", "OK", or null [OPTIONAL] to control display of "OK" button.
+#          $3=Pause $3 seconds [OPTIONAL]. If "NOK" then pause to allow text to be read.
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: DELIM.
 # Outputs: None.
@@ -706,7 +721,7 @@ f_help_message () {
       # sed substitutes null for "#?" at the beginning of each line
       # so it is not printed.
       DELIM="^#?"
-      f_display_common $1 $DELIM
+      f_display_common $1 $DELIM $2 $3
       #
 } # End of f_help_message.
 #
@@ -714,9 +729,11 @@ f_help_message () {
 # |     Function f_display_common_TEMPLATE      |
 # +------------------------------------+
 #
-#     Rev: 2020-06-27
+#     Rev: 2020-08-07
 #  Inputs: $1=GUI - "text", "dialog" or "whiptail" the preferred user-interface.
 #          $2=Delimiter of text to be displayed.
+#          $3="NOK", "OK", or null [OPTIONAL] to control display of "OK" button.
+#          $4=Pause $4 seconds [OPTIONAL]. If "NOK" then pause to allow text to be read.
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: X.
 # Outputs: None.
@@ -757,7 +774,14 @@ f_display_common_TEMPLATE () {
       # so it is not printed.
       sed -n "s/$2//"p $THIS_DIR/$THIS_FILE >> $TEMP_FILE
       #
-      f_message $1 "OK" "Code History (use arrow keys to scroll up/down/side-ways)" $TEMP_FILE
+      case $3 in
+           "NOK" | "nok")
+              f_message $1 "NOK" "Message" $TEMP_FILE $4
+           ;;
+           *)
+              f_message $1 "OK" "(use arrow keys to scroll up/down/side-ways)" $TEMP_FILE
+           ;;
+      esac
       #
 } # End of function f_display_common.
 #
@@ -1054,7 +1078,7 @@ f_message () {
                     f_msg_ui_file_ok $1 $2 "$3" "$4" $YBOX $XBOX
                  else
                     # Display contents of text file with a pause for n seconds.
-                    f_msg_ui_file_nok $1 $2 "$3" "$4" $YBOX $XBOX
+                    f_msg_ui_file_nok $1 $2 "$3" "$4" $YBOX $XBOX "$5"
                  fi
                  #
               else
@@ -1297,7 +1321,7 @@ f_msg_ui_file_ok () {
 # |  Function f_msg_ui_file_nok  |
 # +------------------------------+
 #
-#     Rev: 2020-06-03
+#     Rev: 2020-08-07
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -1307,6 +1331,7 @@ f_msg_ui_file_ok () {
 #          $4 - Text string or text file.
 #          $5 - Box Height in characters.
 #          $6 - Box Width  in characters.
+#          $7 - Pause for $7 seconds to allow text to be read.
 #    Uses: None.
 # Outputs: ERROR. 
 #
@@ -1331,10 +1356,21 @@ f_msg_ui_file_nok () {
               fi
               #
               # Dialog boxes "--msgbox" "--infobox" can use option --colors with "\Z" commands for font color bold/normal.
-              dialog --colors --title "$3" --textbox "$4" $Y $X
+              # Use --infobox to display text without an "OK" button.
+              # Convert text file to a string with "\n" (line feeds)
+              # because Dialog or Whiptail infobox needs a string for input.
+              STRING=$(sed 's/$/\\n/g' $4)
+              STRING=$(echo $STRING | sed 's/\\n /\\n/g')
+              dialog --colors --title "$3" --infobox "$STRING" $Y $X
+              #
+              if [ -z $7 ] ; then
+                 sleep 3
+              else
+                 sleep "$7"
+              fi
            ;;
            whiptail)
-              # Whiptail only has options --textbox or --msgbox (not --infobox).
+              # Whiptail only has options --textbox or--msgbox (not --infobox in earlier versions).
               # Whiptail does not have option "--colors" with "\Z" commands for font color bold/normal.
               #
               # Whiptail needs about 7 more lines for the header and [OK] button.
@@ -1350,7 +1386,25 @@ f_msg_ui_file_nok () {
               if [ $X -ge $XSCREEN ] ; then
                  X=$XSCREEN
               fi
+              # Whiptail only has options --textbox or--msgbox (not --infobox in earlier versions).
+              # Therefore for earlier versions cannot use Whiptail --infobox for no "OK" button but must use --textbox instead.
+              # Uncomment line below for older versions of Whiptail lacking --infobox option.
               whiptail --title "$3" --textbox "$4" $Y $X
+              #
+              # Later versions of Whiptail have --infobox option.
+              #
+              # Use --infobox to display text without an "OK" button.
+              # Convert text file to a string with "\n" (line feeds)
+              # because Dialog or Whiptail infobox needs a string for input.
+              #STRING=$(sed 's/$/\\n/g' $4)
+              #STRING=$(echo $STRING | sed 's/\\n /\\n/g')
+              #whiptail --title "$3" --infobox "$STRING" $Y $X
+              #
+              #if [ -z $7 ] ; then
+              #   sleep 3
+              #else
+              #   sleep "$7"
+              #fi
            ;;
       esac
       #
@@ -1468,7 +1522,7 @@ f_msg_ui_str_ok () {
               dialog --colors --title "$3" --msgbox "$4" $Y $X
            ;;
            whiptail)
-              # Whiptail only has options --textbox or--msgbox (not --infobox).
+              # Whiptail only has options --textbox or--msgbox (not --infobox in earlier versions).
               # Whiptail does not have option "--colors" with "\Z" commands for font color bold/normal.
               #
               # Whiptail needs about 6 more lines for the header and [OK] button.
@@ -1542,7 +1596,7 @@ f_msg_ui_str_nok () {
               fi
            ;;
            whiptail)
-              # Whiptail only has options --textbox or--msgbox (not --infobox).
+              # Whiptail only has options --textbox or--msgbox (not --infobox in earlier versions).
               # Whiptail does not have option "--colors" with "\Z" commands for font color bold/normal.
               #
               # Whiptail needs about 6 more lines for the header and [OK] button.
@@ -2352,6 +2406,9 @@ f_download_library_TEMPLATE () { # Create and display the Main Menu.
 #    f_detect_ui
 # fi
 # #
+# # Show Brief Description message.
+# f_about $GUI "NOK" 3
+#
 # #GUI="whiptail"  # Diagnostic line.
 # #GUI="dialog"    # Diagnostic line.
 # #GUI="text"      # Diagnostic line.
@@ -2367,7 +2424,7 @@ f_download_library_TEMPLATE () { # Create and display the Main Menu.
 # clear # Blank the screen. Nicer ending especially if you chose custom colors for this script.
 # #
 # exit 0  # This cleanly closes the process generated by #!bin/bash. 
-#        # Otherwise every time this script is run, another instance of
-#        # process /bin/bash is created using up resources.
-#        #
-# All dun dun noodles.
+#         # Otherwise every time this script is run, another instance of
+#         # process /bin/bash is created using up resources.
+#         #
+# # All dun dun noodles.
