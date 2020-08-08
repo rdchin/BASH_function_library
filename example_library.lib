@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# ©2020 Copyright 2020 Robert D. Chin
+#
+# Usage: bash example.sh
+#        (not sh example.sh)
+#
+# +--------------------------------------------------------------------------+
+# |                                                                          |
+# |                 Customize Menu choice options below.                     |
+# |                                                                          |
+# +--------------------------------------------------------------------------+
+#
+# Format: <#@@> <Menu Option> <#@@> <Description of Menu Option> <#@@> <Corresponding function or action or cammand>
+#
+#@@Exit#@@Exit to command-line prompt.#@@break
+#
+#@@Do stuff#@@Script to do stuff.#@@f_do_stuff^$GUI
+#
+#@@About#@@Version information of this script.#@@f_about^$GUI
+#
+#@@Code History#@@Display code change history of this script.#@@f_code_history^$GUI
+#
+#@@Help#@@Display help message.#@@f_help_message^$GUI
+#
+# +----------------------------------------+
+# |        Default Variable Values         |
+# +----------------------------------------+
+#
+VERSION="2020-08-08 07:50"
