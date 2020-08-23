@@ -25,7 +25,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-08-07 16:24"
+VERSION="2020-08-10 16:07"
 #
 # +----------------------------------------+
 # |            Brief Description           |
@@ -70,6 +70,8 @@ VERSION="2020-08-07 16:24"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2020-08-10 *f_yn_defaults bug fixed for text UI when displaying question.
 ##
 ## 2020-08-07 *f_msg_ui_file_nok bug fix for Dialog to exclude "OK" button.
 ##            *f_display_common, f_about, f_code_history, f_help_message
@@ -789,7 +791,7 @@ f_display_common_TEMPLATE () {
 # |          Function f_yn_question        |
 # +----------------------------------------+
 #
-#     Rev: 2020-07-16
+#     Rev: 2020-08-10
 #  Inputs: $1=GUI - "text", "dialog" or "whiptail" the preferred user-interface.
 #          $2 - "Y" or "N" - the default answer.
 #          $3 - Title string (may be null).
@@ -879,7 +881,6 @@ f_yn_question () {
               f_yn_defaults $1 $2 "$3" "$4" $Y $X
            ;;
            text)
-              #
               clear  # Blank screen.
               #
               # Does $4 contain "\n"?  Does the string $4 contain multiple sentences?
@@ -890,36 +891,17 @@ f_yn_question () {
                       # Use command "sed" with "-e" to filter out multiple "\Z" commands.
                       # Filter out "\Z[0-7]", "\Zb", \ZB", "\Zr", "\ZR", "\Zu", "\ZU", "\Zn".
                       ZNO=$(echo $4 | sed -e 's|\\Z0||g' -e 's|\\Z1||g' -e 's|\\Z2||g' -e 's|\\Z3||g' -e 's|\\Z4||g' -e 's|\\Z5||g' -e 's|\\Z6||g' -e 's|\\Z7||g' -e 's|\\Zb||g' -e 's|\\ZB||g' -e 's|\\Zr||g' -e 's|\\ZR||g' -e 's|\\Zu||g' -e 's|\\ZU||g' -e 's|\\Zn||g')
+                      XSTR="$ZNO"
                       #
-                      # Create a text file from the string.
-                      echo -e $ZNO > $TEMP_FILE
                    ;;
                    *)
                       # No, string $4 contains a single sentence. 
                       #
                       # Create a text file from the string.
-                      echo $4 > $TEMP_FILE
+                      XSTR="$4"
                    ;;
               esac
               #
-              # Calculate number of lines or Menu Choices to find maximum menu lines for Dialog or Whiptail.
-              Y=$(wc --lines < $TEMP_FILE)
-              #
-              # Display Title and Question.
-              echo $3
-              echo
-              NSEN=1
-              while read XSTR
-                    do
-                       if [ $NSEN -lt $Y ] ; then
-                          echo $XSTR
-                       fi
-                       let NSEN=NSEN+1
-                    done < $TEMP_FILE
-                    #
-              #       
-              # Display only the question.
-              XSTR=$(tail -n 1 $TEMP_FILE)
               f_yn_defaults $1 $2 "$3" "$XSTR"
            ;;
       esac
@@ -930,7 +912,7 @@ f_yn_question () {
 # |    Function f_yn_defaults    |
 # +------------------------------+
 #
-#     Rev: 2020-07-16
+#     Rev: 2020-08-10
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -982,7 +964,7 @@ f_yn_defaults () {
               case $2 in
                    [Yy] | [Yy][Ee][Ss])
                       # "Yes" is the default answer.
-                      echo -n "$TEXT_STR (Y/n) "; read ANS
+                      echo -e -n "$TEXT_STR (Y/n) "; read ANS
                       #
                       case $ANS in
                            [Nn] | [Nn][Oo])
@@ -995,7 +977,7 @@ f_yn_defaults () {
                    ;;
                    [Nn] | [Nn][Oo])
                       # "No" is the default answer.
-                      echo -n "TEXT_STR (y/N) "; read ANS
+                      echo -e -n "$TEXT_STR (y/N) "; read ANS
                       case $ANS in
                            [Yy] | [Yy][Ee] | [Yy][Ee][Ss])
                               ANS=0  # Yes.
