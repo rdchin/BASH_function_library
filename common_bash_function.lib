@@ -25,7 +25,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-08-10 16:07"
+VERSION="2020-09-11 01:25"
 #
 # +----------------------------------------+
 # |            Brief Description           |
@@ -70,6 +70,13 @@ VERSION="2020-08-10 16:07"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2020-09-11 *f_username fixed bug where dialog/whiptail did not work.
+##
+## 2020-09-09 *Main (example) display Brief Discription for only 1 second.
+##
+## 2020-09-07 *f_version added to get version of script from a local repository.
+##            *f_download_local_TEMPLATE, f_check_file_TEMPLATE added.
 ##
 ## 2020-08-10 *f_yn_defaults bug fixed for text UI when displaying question.
 ##
@@ -202,6 +209,31 @@ f_script_path () {
       THIS_DIR=$SCRIPT_PATH  # Set $THIS_DIR to location of this script.
       #
 } # End of function f_script_path.
+#
+# +----------------------------------------+
+# |         Function f_version             |
+# +----------------------------------------+
+#
+#     Rev: 2020-09-07
+#  Inputs: $1=UI.
+#          $2=Samba File server Directory
+#          $3=Local Mount Point (Directory)
+#          $4=File server Target Directory.
+#          $5=File server Target File name.
+#          $6=Version of native file. String.
+#          TEMP_FILE.
+#
+f_version () {
+      #
+      if [ $ERROR -eq 0 ] ; then
+         # Directory is mounted.
+         # Get the version number of the target software script.
+         VERSION_RELEASE=$(grep --max-count=1 "VERSION" $4/$5)
+         #
+         f_message $1 "OK" "Version Information" "From Local Repository\n$4\nFile $5 $VERSION_RELEASE\n\nFrom this PC\nFile $5 $6"
+      fi
+      #
+} # End of function f_version.
 #
 # +----------------------------------------+
 # |         Function f_arguments           |
@@ -473,7 +505,7 @@ f_test_connection () {
 # |           Function f_username          |
 # +----------------------------------------+
 #
-#     Rev: 2020-04-20
+#     Rev: 2020-09-11
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #          $2=USERNAME (default).
 #          $3=MP - Mount-point to display on --usernamebox.
@@ -489,7 +521,7 @@ f_username() {
            dialog | whiptail)
               $1 --title "User name for $3" --inputbox "Enter SMB mount-point user name:" 10 50 $2 2>$TEMP_FILE
               ERROR=$?
-              SMBUSER=$(cat $TEMP_FILE)
+              ANS=$(cat $TEMP_FILE)
            ;;
            text)
               echo
@@ -2254,6 +2286,83 @@ f_create_show_menu () {
 } # End of function f_create_show_menu.
 #
 # +----------------------------------------+
+# |          f_check_file_TEMPLATE           |
+# +----------------------------------------+
+#
+#     Rev: 2020-09-07
+#  Inputs: $1=Library repository directory.
+#          $2=Library file name to download.
+#    Uses: ARRAY_FILE, GENERATED_FILE, MENU_TITLE.
+# Outputs: None.
+#
+# PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
+#              THIS FUNCTION INTO ANY SCRIPT WHICH DEPENDS ON THE
+#              LIBRARY FILE "common_bash_function.lib".
+#
+f_check_file_TEMPLATE () { # Create and display the Main Menu.
+      #
+      if [ -x $2 ] ; then
+         source $2
+      else
+         if [ -e $2 ] ; then
+            chmod +x $2
+            source $2
+         else
+            echo "File Error"
+            echo
+            echo "Error with required file:"
+            echo "\"$2\""
+            echo
+            echo "File is missing or file is not executable."
+            echo
+            #
+            # Determine if repository is on the LAN or on the Internet.
+            case $2 in
+                 http*)
+                    echo "Do you want to download the file: $2"
+                    echo -n "from GitHub.com? (Y/n): " ; read ANS
+                    case $2 in
+                         "" | [Yy] | [Yy][Ee][Ss])
+                            f_download_library $1 $2
+                         ;;
+                         *)
+                            echo
+                            echo "Cannot continue, exiting program script."
+                            echo "Error with required file:"
+                            echo "      \"$2\""
+                            sleep 3
+                            exit 1  # Exit with error.
+                         ;;
+                    esac
+                 ;;
+                 *)
+                    echo "Do you want to download the file: $2"
+                    echo -n "from the local repository? (Y/n): " ; read ANS
+                    case $2 in
+                         "" | [Yy] | [Yy][Ee][Ss])
+                            f_download_local $1 $2
+                         ;;
+                         *)
+                            echo
+                            echo "Cannot continue, exiting program script."
+                            echo "Error with required file:"
+                            echo "      \"$2\""
+                            sleep 3
+                            exit 1  # Exit with error.
+                         ;;
+                    esac
+                 
+                 ;;
+            esac
+            chmod +x $2
+            source $2
+         fi
+         #
+      fi
+      #
+} # End of function f_check_file.
+#
+# +----------------------------------------+
 # |          f_download_library_TEMPLATE           |
 # +----------------------------------------+
 #
@@ -2293,13 +2402,53 @@ f_download_library_TEMPLATE () { # Create and display the Main Menu.
       #
 } # End of function f_download_library.
 #
+# +----------------------------------------+
+# |          f_download_local_TEMPLATE           |
+# +----------------------------------------+
+#
+#     Rev: 2020-09-07
+#          $1=GUI.
+#  Inputs: $2=Internet URL or local path to download.
+#          $3=file name to download.
+#    Uses: ARRAY_FILE, GENERATED_FILE, MENU_TITLE.
+# Outputs: None.
+#
+# PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
+#              THIS FUNCTION INTO ANY SCRIPT WHICH DEPENDS ON THE
+#              LIBRARY FILE "common_bash_function.lib".
+#
+f_download_local_TEMPLATE () { # Create and display the Main Menu.
+      #
+      # Test connection to repository.
+      f_test_connection $2 $3 1
+      #
+      if [ $ERROR -eq 0 ] ; then
+         # Download from local repository
+         cp -p $2/$3 .
+         ERROR=$?
+         if [ $ERROR -ne 0 ] ; then
+            echo
+            f_message $1 "OK" "Copy Error" "!!! Copy failed !!!\nfrom $2 for file: $3\n\nCannot continue, exiting program script."
+            exit 1  # Exit with error.
+         fi
+         #
+         # Make downloaded file executable.
+         chmod 755 $3
+         #
+         echo
+         f_message $1 "OK" "Notice" ">>> Please run program again after download. <<<"
+         exit 0
+         fi
+         #
+} # End of function f_download_local.
+#
 # PLEASE NOTE: THIS IS A SAMPLE OF A STANDARD MAIN PROGRAM.
 #
 # # **************************************
 # # ***     Start of Main Program      ***
 # # **************************************
 # #
-# #     Rev: 2020-07-01
+# #     Rev: 2020-08-20
 # #
 # if [ -e $TEMP_FILE ] ; then
 #    rm $TEMP_FILE
@@ -2316,53 +2465,28 @@ f_download_library_TEMPLATE () { # Create and display the Main Menu.
 # #
 # # Invoke common BASH function library.
 # FILE_DEPENDENCY="common_bash_function.lib"
-# if [ -x "$FILE_DEPENDENCY" ] ; then
-#    source $FILE_DEPENDENCY
-# else
-#    echo "File Error"
-#    echo
-#    echo "Error with required file:"
-#    echo "\"$FILE_DEPENDENCY\""
-#    echo
-#    echo "File is missing or file is not executable."
-#    echo
-#    echo "Do you want to download the file: $FILE_DEPENDENCY"
-#    echo -n "from GitHub.com? (Y/n): " ; read ANS
-#    case $ANS in
-#         "" | [Yy] | [Yy][Ee] | [Yy][Ee][Ss] )
-#            f_download_library "https://raw.githubusercontent.com/rdchin/BASH_function_library/master/" "common_bash_function.lib"
-#            ;;
-#         *)
-#            echo
-#            echo "Cannot continue, exiting program script."
-#            echo "Error with required file:"
-#            echo "\"$FILE_DEPENDENCY\""
-#            sleep 3
-#            exit 1  # Exit with error.
-#            ;;
-#    esac
-#    #
-# fi
+# f_download_libraries "https://raw.githubusercontent.com/rdchin/BASH_function_library/master/" "common_bash_function.lib"
 # #
 # # Invoke libraries required for this script.
 # for FILE_DEPENDENCY in LIBRARY1.lib LIBRARY2.lib LIBRARY3.lib
 #     do
-#        if [ ! -x "$FILE_DEPENDENCY" ] ; then
-#           f_message "text" "OK" "File Error"  "Error with required file:\n\"$FILE_DEPENDENCY\"\n\n\Z1\ZbFile is missing or file is not executable.\n\n\ZnCannot continue, exiting program script." 3
-#           echo
-#           f_abort text
-#        else
-#           source "$FILE_DEPENDENCY"
-#        fi
+#        f_download_libraries [ NAME OF LIBRARY GitHub Repository ] $FILE_DEPENDENCY
 #     done
 #
 # # Test for files required for this script.
 # for FILE_DEPENDENCY in FILE1 FILE2 FILE3
 #     do
 #        if [ ! -x "$FILE_DEPENDENCY" ] ; then
-#           f_message "text" "OK" "File Error"  "Error with required file:\n\"$FILE_DEPENDENCY\"\n\n\Z1\ZbFile is missing or file is not executable.\n\n\ZnCannot continue, exiting program script." 3
-#           echo
-#           f_abort text
+#           #f_message "text" "OK" "File Error"  "Error with required file:\n\"$FILE_DEPENDENCY\"\n\n\Z1\ZbFile is missing or file is not executable.\n\n\ZnCannot continue, exiting program script." 3
+#           #echo
+#           #f_abort text
+#           if [ -e "$FILE_DEPENDENCY" ] ; then
+#              # If file exists then make it executable.
+#              chmod +x "$FILE_DEPENDENCY"
+#           else
+#              # If file is missing download file.
+#              f_download_file
+#           fi
 #        fi
 #     done
 # #
@@ -2389,7 +2513,7 @@ f_download_library_TEMPLATE () { # Create and display the Main Menu.
 # fi
 # #
 # # Show Brief Description message.
-# f_about $GUI "NOK" 3
+# f_about $GUI "NOK" 1
 #
 # #GUI="whiptail"  # Diagnostic line.
 # #GUI="dialog"    # Diagnostic line.
