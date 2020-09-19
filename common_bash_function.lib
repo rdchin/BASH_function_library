@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# ©2020 Copyright 2020 Robert D. Chin
+# Copyright 2020 Robert D. Chin
 #
 # Usage: source common_bash_function.lib
 #
@@ -25,7 +25,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-09-11 01:25"
+VERSION="2020-09-19 18:43"
 #
 # +----------------------------------------+
 # |            Brief Description           |
@@ -70,6 +70,17 @@ VERSION="2020-09-11 01:25"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2020-09-19 *f_menu_main_TEMPLATE added comments.
+##            *f_menu_sub_TEMPLATED added.
+##            *f_check_version_TEMPLATE added comments.
+##
+## 2020-09-14 *f_version_compare added an error message if repository directory is missing.
+##
+## 2020-09-13 *f_check_version_TEMPLATE, f_version_compare added to compare file versions
+##             of file in LAN Repository and local file.
+##            *f_version deleted, incorporated into f_version_compare.
+##            *f_mount added.
 ##
 ## 2020-09-11 *f_username fixed bug where dialog/whiptail did not work.
 ##
@@ -211,29 +222,139 @@ f_script_path () {
 } # End of function f_script_path.
 #
 # +----------------------------------------+
-# |         Function f_version             |
+# |        Function f_check_version_TEMPLATE        |
 # +----------------------------------------+
 #
-#     Rev: 2020-09-07
+#     Rev: 2020-09-19
+#  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
+#    Uses: SERVER_DIR, MP_DIR, TARGET_DIR, TARGET_FILE, VERSION, TEMP_FILE, ERROR.
+# Outputs: $1=GUI.
+#          $2=Samba File server Directory
+#          $3=Local Mount Point (Directory)
+#          $4=File server Target Directory.
+#          $5=File server File Name to compare.
+#          $6=Version of file to compare. String$
+#          $7=Temporary file name with list of files to be upgraded.
+#          ERROR
+#
+# PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
+#              THIS FUNCTION INTO ANY SCRIPT WHICH DEPENDS ON THE
+#              LIBRARY FILE "common_bash_function.lib".
+#
+f_check_version_TEMPLATE () {
+      #
+      #=================================================================
+      # EDIT THE LINES BELOW TO DEFINE THE LAN FILE SERVER DIRECTORY AND
+      # SHARED MOUNTPOINT DIRECTORY, LOCAL TARGET DIRECTORY AND FILE. 
+      #=================================================================
+      #
+      # LAN File Server shared directory.
+      SERVER_DIR="[ FILE SERVER DIRECTORY NAME GOES HERE ]"
+      #
+      # Local PC mount-point directory.
+      MP_DIR="[ LOCAL MOUNT-POINT DIRECTORY NAME GOES HERE ]"
+      #
+      # Local PC target directory, sub-directory below mount-point directory.
+      TARGET_DIR="[ LOCAL MOUNT-POINT DIRECTORY/REPOSITORY SUB-DIRECTORY PATH GOES HERE ]"
+      #
+      # Local PC file name to compare.
+      FILE_TO_COMPARE="[ LOCAL FILE NAME ]"
+      #
+      # Each file script contains the string "VERSION=[ YYYY-MM-DD HH:MM ]"
+      # i.e. VERSION="2020-12-31 23:59"
+      #
+      # Version of TARGET_FILE.
+      VERSION=$(grep --max-count=1 "VERSION" $FILE_TO_COMPARE)
+      #
+      FILE_LIST=$THIS_DIR/$THIS_FILE"_file_temp.txt"
+      ERROR=0
+      #
+      #=================================================================
+      # UNCOMMENT AND EDIT THE LINES BELOW TO SPECIFY THE FILE NAMES.
+      # FILE NAMES TO UPDATE INCLUDE ALL DEPENDENT LIBRARIES.
+      #=================================================================
+      #
+      # Create list of files to update and write to temporary file, FILE_LIST.
+      #
+      #echo "[ FILE NAME1 GOES HERE ]"  > $FILE_LIST  # <<<--- INSERT ACTUAL FILE NAME HERE.
+      #echo "[ FILE NAME2 GOES HERE ]" >> $FILE_LIST  # <<<--- INSERT ACTUAL FILE NAME HERE.
+      #echo "[ FILE NAME3 GOES HERE ]" >> $FILE_LIST  # <<<--- INSERT ACTUAL FILE NAME HERE.
+      #echo "[ FILE NAME4 GOES HERE ]" >> $FILE_LIST  # <<<--- INSERT ACTUAL FILE NAME HERE.
+      #
+      f_version_compare $1 $SERVER_DIR $MP_DIR $TARGET_DIR $FILE_TO_COMPARE "$VERSION" $FILE_LIST
+      #
+      if [ -r  $FILE_LIST ] ; then
+         rm  $FILE_LIST
+      fi
+      #
+}  # End of function f_check_version_TEMPLATE.
+#
+# +----------------------------------------+
+# |       Function f_version_compare       |
+# +----------------------------------------+
+#
+#     Rev: 2020-09-13
 #  Inputs: $1=UI.
 #          $2=Samba File server Directory
 #          $3=Local Mount Point (Directory)
 #          $4=File server Target Directory.
 #          $5=File server Target File name.
 #          $6=Version of native file. String.
-#          TEMP_FILE.
+#          $7=Temporary file name with list of files to be upgraded.
+#    Uses: LINE.
 #
-f_version () {
+f_version_compare () {
       #
-      if [ $ERROR -eq 0 ] ; then
-         # Directory is mounted.
-         # Get the version number of the target software script.
-         VERSION_RELEASE=$(grep --max-count=1 "VERSION" $4/$5)
+      if [ ! -e $MP_DIR ] ; then
+         f_message $1 "NOK" "Error missing directory" "Missing local mountpoint directory\n$MP_DIR." 2
+      else
+         f_mount $1 $SERVER_DIR $MP_DIR
          #
-         f_message $1 "OK" "Version Information" "From Local Repository\n$4\nFile $5 $VERSION_RELEASE\n\nFrom this PC\nFile $5 $6"
+         if [ $ERROR -eq 0 ] ; then
+            # Directory is mounted.
+            # Get the version number of the target software script.
+            if [ -e $4/$5 ] ; then
+               VERSION_RELEASE=$(grep --max-count=1 "VERSION" $4/$5)
+            else
+               f_message $1 "OK" "Error Missing Local Repository Directory" "Failed to access Local Repository Directory. Cannot compare script versions."
+            fi
+            #
+            f_message $1 "OK" "Version Information" "From Local Repository\n$4\nFile $5 $VERSION_RELEASE\n\nFrom this PC\nFile $5 $6"
+         else
+            f_message $1 "OK" "Error Mounting Local Repository Directory" "Failed to mount Local Repository Directory. Cannot compare script versions."
+         fi 
+         #
+         if [ $ERROR -eq 0 ] ; then
+            f_yn_question $1 "N" "Copy from Repository?" "COPY from Repository\n$TARGET_FILE $VERSION_RELEASE\n\nand OVERWRITE\n\n$TARGET_FILE $VERSION on this PC?"
+            if [ $ANS = 0 ] ; then
+               # Yes, copy from repository.
+               # Update files required for this script.
+               #
+               while read LINE
+                     do
+                        #f_message $1 "NOK" "Copy $LINE" "Copying $4/$LINE" 1  # Diagnostic line.
+                        eval cp -p $4/$LINE .
+                        #
+                        # Make file executable (useable).
+                        chmod +x $LINE
+                        #
+                        if [ ! -x "$LINE" ] ; then
+                           f_message $1 "OK" "File Error"  "Error with required file:\n\"$FILE\"\n\n\Z1\ZbFile is missing or file is not executable.\n\n\ZnCannot continue, exiting program script." 3
+                           ERROR=1
+                        fi
+                       done < $7
+               unset LINE
+               #
+               if [ $ERROR -ne 0 ] ; then
+                  f_message $1 "NOK" "Error occurred" "Error Retrieving Version Information." 2
+               else
+                  f_message $1 "NOK" "Successful Update" "File copy operation was successful." 2
+               fi
+            fi
+         fi
       fi
       #
-} # End of function f_version.
+} # End of function f_version_compare.
 #
 # +----------------------------------------+
 # |         Function f_arguments           |
@@ -2180,8 +2301,8 @@ f_update_menu_gui () {
 # |          Function f_menu_main_TEMPLATE          |
 # +----------------------------------------+
 #
-#     Rev: 2020-07-01
-#  Inputs: None.
+#     Rev: 2020-09-18
+#  Inputs: $1=GUI.
 #    Uses: ARRAY_FILE, GENERATED_FILE, MENU_TITLE.
 # Outputs: None.
 #
@@ -2226,16 +2347,72 @@ f_menu_main_TEMPLATE () { # Create and display the Main Menu.
       let MAX_LENGTH=$MAX_CHOICE_LENGTH+$MAX_SUMMARY_LENGTH
       #
       # Create generated menu script from array data.
-      MENU_TITLE="Main_Menu"  # Menu title must substitute underscores for spaces
+      #
+      # Note: ***If Menu title contains spaces,
+      #       ***the size of the menu window will be too narrow.
+      #
+      # Menu title MUST use underscores instead of spaces.
+      MENU_TITLE="Main_Menu"
       TEMP_FILE=$THIS_DIR/$THIS_FILE"_menu_main_temp.txt"
       #
-      f_create_show_menu $GUI $GENERATED_FILE $MENU_TITLE $MAX_LENGTH $MAX_LINES $MAX_CHOICE_LENGTH $TEMP_FILE
+      f_create_show_menu $1 $GENERATED_FILE $MENU_TITLE $MAX_LENGTH $MAX_LINES $MAX_CHOICE_LENGTH $TEMP_FILE
       #
       if [ -r $GENERATED_FILE ] ; then
          rm $GENERATED_FILE
       fi
       #
+      if [ -r $TEMP_FILE ] ; then
+         rm $TEMP_FILE
+      fi
+      #
 } # End of function f_menu_main.
+#
+# +----------------------------------------+
+# |          Function f_menu_SUB-MENU_TEMPLATE  |
+# +----------------------------------------+
+#
+#     Rev: 2020-09-18
+#  Inputs: $1=GUI.
+#    Uses: ARRAY_FILE, GENERATED_FILE, MENU_TITLE.
+# Outputs: None.
+#
+f_menu_sub_TEMPLATE () {
+      #
+      GENERATED_FILE=$THIS_DIR/$THIS_FILE"_menu_sub-01_generated.lib"
+      #
+      # Create generated menu script from array data.
+      #
+      # Note: ***If Menu title contains spaces,
+      #       ***the size of the menu window will be too narrow.
+      #
+      # Menu title MUST use underscores instead of spaces.
+      MENU_TITLE="Sub-menu_Menu"  # Menu title must substitute underscores for spaces
+      TEMP_FILE=$THIS_DIR/$THIS_FILE"_menu_sub-01_temp.txt"
+      #
+      #================================================================================
+      # EDIT THE LINE BELOW TO DEFINE $ARRAY_FILE AS THE ACTUAL FILE NAME (LIBRARY)
+      # WHERE THE MENU ITEM DATA IS LOCATED. THE LINES OF DATA ARE PREFIXED BY "#@@".
+      #================================================================================
+      #
+      # Specify library file name with menu item data.
+      ARRAY_FILE="[FILENAME_GOES_HERE]"
+      #
+      # Create arrays from data.
+      f_menu_arrays $ARRAY_FILE
+      #
+      # Create generated menu script from array data.
+      f_create_show_menu $1 $GENERATED_FILE $MENU_TITLE $MAX_LENGTH $MAX_LINES $MAX_CHOICE_LENGTH $TEMP_FILE
+      #
+      #
+      if [ -r $GENERATED_FILE ] ; then
+         rm $GENERATED_FILE
+      fi
+      #
+      if [ -r $TEMP_FILE ] ; then
+         rm $TEMP_FILE
+      fi
+      #
+}  # End of function f_menu_sub.
 #
 # +----------------------------------------+
 # |       Function f_create_show_menu      |
@@ -2284,6 +2461,36 @@ f_create_show_menu () {
       fi
       #
 } # End of function f_create_show_menu.
+#
+# +----------------------------------------+
+# |             Function f_mount           |
+# +----------------------------------------+
+#
+#     Rev: 2020-09-13
+#  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
+#          $2=File server Directory
+#          $3=Mount Point (Directory)
+#    Uses: None
+# Outputs: ERROR, TEMP_FILE.
+#
+f_mount () {
+      #
+      mountpoint $3 >/dev/null 2>$TEMP_FILE # Write any error messages to file $TEMP_FILE. Get status of mountpoint, mounted?.
+      ERROR=$?
+      if [ $ERROR -ne 0 ] ; then
+         # Mount directory.
+         f_username $1 "" $3
+         if [ $ERROR -eq 0 ] ; then
+            f_password $1 $3
+            if [ $ERROR -eq 0 ] ; then
+               sudo mount -t cifs -o username="$SMBUSER" -o password="$PASSWORD" $2 $3
+               mountpoint $3 >/dev/null 2>$TEMP_FILE # Write any error messages to file $TEMP_FILE. Get status of mountpoint, mounted?.
+               ERROR=$?
+            fi
+         fi
+      fi
+      #
+}  # End of function f_mount.
 #
 # +----------------------------------------+
 # |          f_check_file_TEMPLATE           |
@@ -2465,12 +2672,12 @@ f_download_local_TEMPLATE () { # Create and display the Main Menu.
 # #
 # # Invoke common BASH function library.
 # FILE_DEPENDENCY="common_bash_function.lib"
-# f_download_libraries "https://raw.githubusercontent.com/rdchin/BASH_function_library/master/" "common_bash_function.lib"
+# f_download_library "https://raw.githubusercontent.com/rdchin/BASH_function_library/master/" "common_bash_function.lib"
 # #
 # # Invoke libraries required for this script.
 # for FILE_DEPENDENCY in LIBRARY1.lib LIBRARY2.lib LIBRARY3.lib
 #     do
-#        f_download_libraries [ NAME OF LIBRARY GitHub Repository ] $FILE_DEPENDENCY
+#        f_download_library [ NAME OF LIBRARY GitHub Repository ] $FILE_DEPENDENCY
 #     done
 #
 # # Test for files required for this script.
@@ -2485,7 +2692,7 @@ f_download_local_TEMPLATE () { # Create and display the Main Menu.
 #              chmod +x "$FILE_DEPENDENCY"
 #           else
 #              # If file is missing download file.
-#              f_download_file
+#              f_download_local
 #           fi
 #        fi
 #     done
@@ -2523,7 +2730,7 @@ f_download_local_TEMPLATE () { # Create and display the Main Menu.
 # f_test_environment
 # #
 # #
-# f_menu_main
+# f_menu_main $GUI
 # #
 # f_do_stuff
 # #
