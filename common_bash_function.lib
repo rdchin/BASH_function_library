@@ -25,7 +25,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-09-19 18:43"
+VERSION="2020-12-11 00:13"
 #
 # +----------------------------------------+
 # |            Brief Description           |
@@ -60,8 +60,16 @@ VERSION="2020-09-19 18:43"
 #?                 --ver
 #?                 -v
 #?
+#? bash example.sh --update   # Update script.
+#?                 -u
+#?
 #? bash example.sh --history  # Displays script code history.
 #?                 --hist
+#?
+#? Examples using 2 arguments:
+#?
+#? bash example.sh --hist text
+#?                 --ver dialog
 #
 # +----------------------------------------+
 # |           Code Change History          |
@@ -70,6 +78,24 @@ VERSION="2020-09-19 18:43"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2020-12-11 *f_version_compare allowed logging of file copy errors.
+##            *f_download_from_local_repository allowed logging of file copy errors.
+##
+## 2020-11-25 *f_version_compare improved display messages.
+##
+## 2020-10-27 *Updated to latest standards.
+##
+## 2020-10-25 *f_username improved messages.
+##
+## 2020-10-23 *f_check_version_TEMPLATE improved comments.
+##
+## 2020-10-22 *f_arguments, "Help and Usage" added option --update -u.
+##
+## 2020-09-30 *Sample Main Program code was deleted and included in the
+##             script example.sh.
+##
+## 2020-09-22 *f_version_compare added a message on successful update.
 ##
 ## 2020-09-19 *f_menu_main_TEMPLATE added comments.
 ##            *f_menu_sub_TEMPLATED added.
@@ -225,7 +251,7 @@ f_script_path () {
 # |        Function f_check_version_TEMPLATE        |
 # +----------------------------------------+
 #
-#     Rev: 2020-09-19
+#     Rev: 2020-10-23
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #    Uses: SERVER_DIR, MP_DIR, TARGET_DIR, TARGET_FILE, VERSION, TEMP_FILE, ERROR.
 # Outputs: $1=GUI.
@@ -240,6 +266,10 @@ f_script_path () {
 # PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
 #              THIS FUNCTION INTO ANY SCRIPT WHICH DEPENDS ON THE
 #              LIBRARY FILE "common_bash_function.lib".
+#
+# Synopsis: Check version $6 of $5 local file with version of repository file.
+#           If the repository file has latest version, then copy all 
+#           dependent files and libraries from the repository to local PC. 
 #
 f_check_version_TEMPLATE () {
       #
@@ -293,53 +323,66 @@ f_check_version_TEMPLATE () {
 # |       Function f_version_compare       |
 # +----------------------------------------+
 #
-#     Rev: 2020-09-13
+#     Rev: 2020-12-11
 #  Inputs: $1=UI.
 #          $2=Samba File server Directory
 #          $3=Local Mount Point (Directory)
 #          $4=File server Target Directory.
 #          $5=File server Target File name.
-#          $6=Version of native file. String.
+#          $6=Version of Local file. String.
 #          $7=Temporary file name with list of files to be upgraded.
-#    Uses: LINE.
+#    Uses: LINE, VER.
 #
 f_version_compare () {
       #
-      if [ ! -e $MP_DIR ] ; then
-         f_message $1 "NOK" "Error missing directory" "Missing local mountpoint directory\n$MP_DIR." 2
+      # Change string $VER from: VERSION="2020-12-31 23:59"
+      #                      to: 2020-12-31 23:59           (without quotes within string).
+      VER=$(echo $6 | sed 's/VERSION=//' | sed 's/\"//g' | sed 's/ /_/g')
+      #
+      if [ ! -e $3 ] ; then
+         f_message $1 "NOK" "Error missing directory" "Missing local mountpoint directory\n$3." 2
       else
-         f_mount $1 $SERVER_DIR $MP_DIR
+         f_mount $1 $2 $3
          #
          if [ $ERROR -eq 0 ] ; then
             # Directory is mounted.
             # Get the version number of the target software script.
             if [ -e $4/$5 ] ; then
+               #
+               # Each file script contains the string "VERSION=[ YYYY-MM-DD HH:MM ]"
+               # i.e. VERSION="2020-12-31 23:59"
                VERSION_RELEASE=$(grep --max-count=1 "VERSION" $4/$5)
+               # Version of TARGET_FILE.
+               # Format: YYYY-MM-DD_HH:MM string.
+               # Change string $VERSION_RELEASE from: VERSION="2020-12-31 23:59"
+               #                                  to: 2020-12-31 23:59           (without quotes within string).
+               VERSION_RELEASE=$(echo $VERSION_RELEASE | sed 's/VERSION=//' | sed 's/\"//g' | sed 's/ /_/g')
             else
                f_message $1 "OK" "Error Missing Local Repository Directory" "Failed to access Local Repository Directory. Cannot compare script versions."
             fi
             #
-            f_message $1 "OK" "Version Information" "From Local Repository\n$4\nFile $5 $VERSION_RELEASE\n\nFrom this PC\nFile $5 $6"
+            f_message $1 "OK" "Version Information" "From Local Repository\n$4\nFile $5 $VERSION_RELEASE\n\nFrom this PC\nFile $5 $VER"
          else
             f_message $1 "OK" "Error Mounting Local Repository Directory" "Failed to mount Local Repository Directory. Cannot compare script versions."
-         fi 
+         fi
          #
          if [ $ERROR -eq 0 ] ; then
-            f_yn_question $1 "N" "Copy from Repository?" "COPY from Repository\n$TARGET_FILE $VERSION_RELEASE\n\nand OVERWRITE\n\n$TARGET_FILE $VERSION on this PC?"
-            if [ $ANS = 0 ] ; then
+            f_yn_question $1 "N" "Copy from Repository?" "COPY from Repository\n$5 $VERSION_RELEASE\n\nand OVERWRITE\n\n$5 $VER  (on this PC?)"
+            #
+            if [ $ANS -eq 0 ] ; then
                # Yes, copy from repository.
                # Update files required for this script.
                #
                while read LINE
                      do
-                        #f_message $1 "NOK" "Copy $LINE" "Copying $4/$LINE" 1  # Diagnostic line.
-                        eval cp -p $4/$LINE .
+                        eval cp -p $4/$LINE . 2>$TEMP_FILE # Write any error messages to file $TEMP_FILE.
+                        f_message $1 "OK" "Copy $LINE" "Copying $4/$LINE" 1  # Diagnostic line.
                         #
                         # Make file executable (useable).
                         chmod +x $LINE
                         #
                         if [ ! -x "$LINE" ] ; then
-                           f_message $1 "OK" "File Error"  "Error with required file:\n\"$FILE\"\n\n\Z1\ZbFile is missing or file is not executable.\n\n\ZnCannot continue, exiting program script." 3
+                           f_message $1 "OK" "File Error"  "Error with required file:\n\"$LINE\"\n\n\Z1\ZbFile is missing or file is not executable.\n\n\ZnCannot continue, exiting program script." 3
                            ERROR=1
                         fi
                        done < $7
@@ -348,11 +391,13 @@ f_version_compare () {
                if [ $ERROR -ne 0 ] ; then
                   f_message $1 "NOK" "Error occurred" "Error Retrieving Version Information." 2
                else
-                  f_message $1 "NOK" "Successful Update" "File copy operation was successful." 2
+                  f_message $1 "OK" "Successful Update" "Latest version was successfully copied for use.\nScript must be re-started to use the latest version."
                fi
             fi
          fi
       fi
+      #
+      unset LINE VER
       #
 } # End of function f_version_compare.
 #
@@ -360,12 +405,13 @@ f_version_compare () {
 # |         Function f_arguments           |
 # +----------------------------------------+
 #
-#     Rev: 2020-06-27
+#     Rev: 2020-10-22
 #  Inputs: $1=Argument
-#             [--help] [ -h ] [ -? ]
-#             [--about]
-#             [--version] [ -ver ] [ -v ] [--about ]
-#             [--history] [--hist ]
+#             [ --help ] [ -h ] [ -? ]
+#             [ --about ]
+#             [ --version ] [ --ver ] [ -v ] [--about ]
+#             [ --update ] [ -u ]
+#             [ --history ] [ --hist ]
 #             [] [ text ] [ dialog ] [ whiptail ]
 #             [ --help dialog ]  [ --help whiptail ]
 #             [ --about dialog ] [ --about whiptail ]
@@ -411,9 +457,9 @@ f_arguments () {
            ;;
            --about | --version | --ver | -v)
               if [ -z $GUI ] ; then
-                 f_about text
+                 f_about text "OK"
               else
-                 f_about $GUI
+                 f_about $GUI "OK"
               fi
               #
               clear # Blank the screen.
@@ -434,6 +480,20 @@ f_arguments () {
               exit 0  # This cleanly closes the process generated by #!bin/bash. 
                       # Otherwise every time this script is run, another instance of
                       # process /bin/bash is created using up resources.
+           ;;
+           --update | -u)
+              if [ -z $GUI ] ; then
+                 f_check_version text $SERVER_DIR $MP_DIR $TARGET_DIR $FILE_TO_COMPARE $VERSION_TO_COMPARE $FILE_LIST
+              else
+                 f_check_version $GUI $SERVER_DIR $MP_DIR $TARGET_DIR $FILE_TO_COMPARE $VERSION_TO_COMPARE $FILE_LIST
+              fi
+              #
+              clear # Blank the screen.
+              #
+              exit 0  # This cleanly closes the process generated by #!bin/bash. 
+                      # Otherwise every time this script is run, another instance of
+                      # process /bin/bash is created using up resources.
+           
            ;;
            -*)
               # If the one argument is "-<unrecognized>" display help USAGE message.
@@ -602,7 +662,7 @@ f_test_connect_TEMPLATE () {
 #
 #     Rev: 2020-07-16
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
-#          $2 - Network name of server. 
+#          $2 - Network name of server, ip address, or web site address (URL). 
 #          $3 - Pause n seconds to read message (Optional).
 #    Uses: None.
 # Outputs: ERROR. 
@@ -626,7 +686,7 @@ f_test_connection () {
 # |           Function f_username          |
 # +----------------------------------------+
 #
-#     Rev: 2020-09-11
+#     Rev: 2020-10-25
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #          $2=USERNAME (default).
 #          $3=MP - Mount-point to display on --usernamebox.
@@ -645,9 +705,15 @@ f_username() {
               ANS=$(cat $TEMP_FILE)
            ;;
            text)
+              echo "           --User name for $3--"
               echo
-              read -p "Enter user name or n=none ($2): " ANS
-              echo
+              if [ $2 = "n" ] ; then
+                 read -p "Enter user name or n=none (n): " ANS
+                 echo
+              else
+                 read -p "Enter user name or n=none ($2): " ANS
+                 echo
+              fi
            ;;
       esac
       case $ANS in
@@ -705,6 +771,7 @@ f_password() {
               echo
            ;;
       esac
+      #
       case $ERROR in
            1) PASSWORD="" ;;   # <Cancel> button pressed.
            255) PASSWORD="" ;; # <ESC> key pressed.
@@ -2479,7 +2546,7 @@ f_mount () {
       ERROR=$?
       if [ $ERROR -ne 0 ] ; then
          # Mount directory.
-         f_username $1 "" $3
+         f_username $1 "$USER" $3
          if [ $ERROR -eq 0 ] ; then
             f_password $1 $3
             if [ $ERROR -eq 0 ] ; then
@@ -2558,7 +2625,6 @@ f_check_file_TEMPLATE () { # Create and display the Main Menu.
                             exit 1  # Exit with error.
                          ;;
                     esac
-                 
                  ;;
             esac
             chmod +x $2
@@ -2570,174 +2636,129 @@ f_check_file_TEMPLATE () { # Create and display the Main Menu.
 } # End of function f_check_file.
 #
 # +----------------------------------------+
-# |          f_download_library_TEMPLATE           |
+# |          f_download_from_web_site      |
 # +----------------------------------------+
 #
-#     Rev: 2020-06-23
-#  Inputs: $1=GitHub Repository
-#          $2=file name to download.
-#    Uses: ARRAY_FILE, GENERATED_FILE, MENU_TITLE.
-# Outputs: None.
+#     Rev: 2020-10-03
+#  Inputs: $1=UI.
+#          $2=Internet URL of repository.
+#          $3=Temporary file name with list of files to be upgraded.
+#    Uses: LINE.
+# Outputs: ERROR.
 #
-# PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
-#              THIS FUNCTION INTO ANY SCRIPT WHICH DEPENDS ON THE
-#              LIBRARY FILE "common_bash_function.lib".
-#
-f_download_library_TEMPLATE () { # Create and display the Main Menu.
+f_download_from_web_site () {
       #
-      wget --show-progress $1$2
-      ERROR=$?
+      while read LINE
+            do
+               # Copy file from web site.
+               wget --show-progress $2$LINE
+               ERROR=$?
+               if [ $ERROR -eq 0 ] ; then
+                  # Make file executable (useable).
+                  chmod +x $LINE
+               else
+                  f_message $1 "OK" "Error" "!!! wget download failed !!!\n    for file: $LINE."
+               fi
+               #
+               if [ ! -x "$LINE" ] ; then
+                  f_message $1 "OK" "File Error"  "Error with required file:\n\"$5\"\n\n\Z1\ZbFile is missing or file is not executable.\n\n\ZnCannot continue, exiting program script." 3
+                  ERROR=1
+               fi
+            done < $3
+      unset LINE
+      #
       if [ $ERROR -ne 0 ] ; then
-         echo
-         echo "!!! wget download failed !!!"
-         echo "from GitHub.com for file: $2"
-         echo
-         echo "Cannot continue, exiting program script."
-         sleep 3
-         exit 1  # Exit with error.
+         f_message $1 "OK" "Copy Error" "!!! Copy failed !!!\nfrom $2 for file: $3\n\nCannot continue, exiting program script."
+      else
+         f_message $1 "OK" "Successful Update" "Latest version was successfully copied for use.\nScript must be re-started to use the latest version."
       fi
       #
-      # Make downloaded file executable.
-      chmod 755 $2
-      #
-      echo
-      echo ">>> Please run program again after download. <<<"
-      echo 
-      # Delay to read messages on screen.
-      echo -n "Press \"Enter\" key to continue" ; read X
-      exit 0
-      #
-} # End of function f_download_library.
+} # End of function f_download_from_web_site.
 #
 # +----------------------------------------+
-# |          f_download_local_TEMPLATE           |
+# |    f_download_from_local_repository    |
 # +----------------------------------------+
 #
-#     Rev: 2020-09-07
-#          $1=GUI.
-#  Inputs: $2=Internet URL or local path to download.
-#          $3=file name to download.
-#    Uses: ARRAY_FILE, GENERATED_FILE, MENU_TITLE.
+#     Rev: 2020-12-11
+#
+#  Inputs: $1=UI.
+#          $2=Samba File server Directory
+#          $3=Local Mount Point (Directory)
+#          $4=File server Target Directory.
+#          $5=Temporary file name with list of files to be upgraded.
+#          TEMP_FILE.
+#    Uses: LINE.
 # Outputs: None.
 #
-# PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
-#              THIS FUNCTION INTO ANY SCRIPT WHICH DEPENDS ON THE
-#              LIBRARY FILE "common_bash_function.lib".
-#
-f_download_local_TEMPLATE () { # Create and display the Main Menu.
+f_download_from_local_repository () {
       #
-      # Test connection to repository.
-      f_test_connection $2 $3 1
+      # Is file server directory already mounted on mount-point directory?
+      #    Yes - Download file from LAN file server.
+      #    No  - Does mount-point exist?
+      #        No  - Exit.
+      #        Yes - Mount file server share on mount-point.
+      #            Is the mount-point mounted OK?
+      #               No  - Exit.
+      #               Yes - Copy (Download) file from local repository on LAN file server.
+      #                   Was the copy successful?
+      #                      No  - Message fail and Exit.
+      #                      Yes - Message success and Exit.
+      #
+      # Is file server directory already mounted on mount-point directory?
+      mountpoint $3 >/dev/null 2>$TEMP_FILE # Write any error messages to file $TEMP_FILE. Get status of mountpoint, mounted?.
       #
       if [ $ERROR -eq 0 ] ; then
-         # Download from local repository
-         cp -p $2/$3 .
-         ERROR=$?
-         if [ $ERROR -ne 0 ] ; then
-            echo
-            f_message $1 "OK" "Copy Error" "!!! Copy failed !!!\nfrom $2 for file: $3\n\nCannot continue, exiting program script."
-            exit 1  # Exit with error.
+         # File server directory is already mounted at the mount-point.
+         # Download (copy) file from local repository to PC.
+         while read LINE
+               do
+                  eval cp -p $4/$LINE . 2>$TEMP_FILE # Write any error messages to file $TEMP_FILE.
+                  #
+                  # Make file executable (useable).
+                  chmod +x $LINE
+                  #
+                  if [ ! -x "$LINE" ] ; then
+                     f_message $1 "OK" "File Error"  "Error with required file:\n\"$LINE\"\n\n\Z1\ZbFile is missing or file is not executable.\n\n\ZnCannot continue, exiting program script." 3
+                     ERROR=1
+                  fi
+               done < $5
+         unset LINE
+         #
+      else
+         # File server directory is not mounted at the mount-point.
+         # Does mount-point directory exist?
+         if [ ! -e $3 ] ; then
+            f_message $1 "NOK" "Error missing directory" "Missing local mountpoint directory\n$3.\n\nCannot continue to download." 2
+         else
+            # Yes, mount-point directory exists.
+            # Mount file server directory at the mount-point.
+            f_mount $1 $2 $3
+            #
+            if [ $ERROR -eq 0 ] ; then
+               # Directory is mounted.
+               # Download (copy) files from local repository to PC.
+               while read LINE
+                     do
+                        eval cp -p $4/$LINE . 2>$TEMP_FILE # Write any error messages to file $TEMP_FILE.
+                        if [ ! -e $4/$LINE ] ; then
+                           f_message $1 "OK" "Copy Error" "Error copying file:\n\"$LINE\"\n\n\Z1\ZbFile not copied.\n\n\ZnCannot continue, exiting program script." 3
+                        fi
+                        #
+                        # Make file executable (useable).
+                        chmod +x $LINE
+                        #
+                        if [ ! -x "$LINE" ] ; then
+                          f_message $1 "OK" "File Error"  "Error with required file:\n\"$LINE\"\n\n\Z1\ZbFile is missing or file is not executable.\n\n\ZnCannot continue, exiting program script." 3
+                          ERROR=1
+                        fi
+                     done < $5
+               unset LINE
+            else
+               f_message $1 "OK" "Mount Error" "Error mounting directory $2 to $3.\n\n\ZnCannot continue, exiting program script." 3
+            fi
+            #
          fi
-         #
-         # Make downloaded file executable.
-         chmod 755 $3
-         #
-         echo
-         f_message $1 "OK" "Notice" ">>> Please run program again after download. <<<"
-         exit 0
-         fi
-         #
-} # End of function f_download_local.
+      fi
+      #
+} # End of function f_download_from_local_repository.
 #
-# PLEASE NOTE: THIS IS A SAMPLE OF A STANDARD MAIN PROGRAM.
-#
-# # **************************************
-# # ***     Start of Main Program      ***
-# # **************************************
-# #
-# #     Rev: 2020-08-20
-# #
-# if [ -e $TEMP_FILE ] ; then
-#    rm $TEMP_FILE
-# fi
-# #
-# clear  # Blank the screen.
-# #
-# echo "Running script $THIS_FILE"
-# echo "***   Rev. $VERSION   ***"
-# echo
-# sleep 1  # pause for 1 second automatically.
-# #
-# clear # Blank the screen.
-# #
-# # Invoke common BASH function library.
-# FILE_DEPENDENCY="common_bash_function.lib"
-# f_download_library "https://raw.githubusercontent.com/rdchin/BASH_function_library/master/" "common_bash_function.lib"
-# #
-# # Invoke libraries required for this script.
-# for FILE_DEPENDENCY in LIBRARY1.lib LIBRARY2.lib LIBRARY3.lib
-#     do
-#        f_download_library [ NAME OF LIBRARY GitHub Repository ] $FILE_DEPENDENCY
-#     done
-#
-# # Test for files required for this script.
-# for FILE_DEPENDENCY in FILE1 FILE2 FILE3
-#     do
-#        if [ ! -x "$FILE_DEPENDENCY" ] ; then
-#           #f_message "text" "OK" "File Error"  "Error with required file:\n\"$FILE_DEPENDENCY\"\n\n\Z1\ZbFile is missing or file is not executable.\n\n\ZnCannot continue, exiting program script." 3
-#           #echo
-#           #f_abort text
-#           if [ -e "$FILE_DEPENDENCY" ] ; then
-#              # If file exists then make it executable.
-#              chmod +x "$FILE_DEPENDENCY"
-#           else
-#              # If file is missing download file.
-#              f_download_local
-#           fi
-#        fi
-#     done
-# #
-# # If an error occurs, the f_abort() function will be called.
-# # trap 'f_abort' 0
-# # set -e
-# #
-# # Set THIS_DIR, SCRIPT_PATH to directory path of script.
-# f_script_path
-# #
-# # Set Temporary file using $THIS_DIR from f_script_path.
-# TEMP_FILE=$THIS_DIR/$THIS_FILE"_temp.txt"
-# #
-# # Set default TARGET DIRECTORY.
-# TARGET_DIR=$THIS_DIR
-# #
-# # Test for Optional Arguments.
-# f_arguments $1 $2 # Also sets variable GUI.
-# #
-# # If command already specifies GUI, then do not detect GUI i.e. "bash dropfsd.sh dialog" or "bash dropfsd.sh text".
-# if [ -z $GUI ] ; then
-#    # Test for GUI (Whiptail or Dialog) or pure text environment.
-#    f_detect_ui
-# fi
-# #
-# # Show Brief Description message.
-# f_about $GUI "NOK" 1
-#
-# #GUI="whiptail"  # Diagnostic line.
-# #GUI="dialog"    # Diagnostic line.
-# #GUI="text"      # Diagnostic line.
-# #
-# # Test for BASH environment.
-# f_test_environment
-# #
-# #
-# f_menu_main $GUI
-# #
-# f_do_stuff
-# #
-# clear # Blank the screen. Nicer ending especially if you chose custom colors for this script.
-# #
-# exit 0  # This cleanly closes the process generated by #!bin/bash. 
-#         # Otherwise every time this script is run, another instance of
-#         # process /bin/bash is created using up resources.
-#         #
-# # All dun dun noodles.
