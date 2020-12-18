@@ -25,7 +25,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-12-11 00:13"
+VERSION="2020-12-18 16:21"
 #
 # +----------------------------------------+
 # |            Brief Description           |
@@ -48,28 +48,35 @@ VERSION="2020-12-11 00:13"
 #?    Usage: bash example.sh [OPTION]
 #? Examples:
 #?
-#? bash example.sh text       # Use Cmd-line user-interface (80x24 min.).
-#?                 dialog     # Use Dialog   user-interface.
-#?                 whiptail   # Use Whiptail user-interface.
+#? bash example.sh            Use Dialog or Whiptail or Cmd-line UI.
+#?                            (in that order of preference)
 #?
-#? bash example.sh --help     # Displays this help message.
+#?                            Force display to use a different UI.
+#? bash example.sh text       Use Cmd-line user-interface. (80x24 min.)
+#?                 dialog     Use Dialog   user-interface.
+#?                 whiptail   Use Whiptail user-interface.
+#?
+#? bash example.sh --help     Displays this help message.
 #?                 -?
+#?                            Force display to use a different UI.
+#?                 -? dialog  --help whiptail
 #?
-#? bash example.sh --about    # Displays script version.
+#? bash example.sh --about    Displays script version.
 #?                 --version
 #?                 --ver
 #?                 -v
+#?                            Force display to use a different UI.
+#?                 -v dialog --ver whiptail --about dialog
 #?
-#? bash example.sh --update   # Update script.
+#? bash example.sh --update   Update script.
 #?                 -u
+#?                            Force display to use a different UI.
+#?                 -u dialog  --update whiptail
 #?
-#? bash example.sh --history  # Displays script code history.
+#? bash example.sh --history  Displays script code history.
 #?                 --hist
-#?
-#? Examples using 2 arguments:
-#?
-#? bash example.sh --hist text
-#?                 --ver dialog
+#?                            Force display to use a different UI.
+#?                 --hist dialog  --history whiptail
 #
 # +----------------------------------------+
 # |           Code Change History          |
@@ -78,6 +85,9 @@ VERSION="2020-12-11 00:13"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2020-12-18 *"Help and Usage" message improved.
+##            *f_arguments updated comments.
 ##
 ## 2020-12-11 *f_version_compare allowed logging of file copy errors.
 ##            *f_download_from_local_repository allowed logging of file copy errors.
@@ -405,19 +415,16 @@ f_version_compare () {
 # |         Function f_arguments           |
 # +----------------------------------------+
 #
-#     Rev: 2020-10-22
+#     Rev: 2020-12-18
 #  Inputs: $1=Argument
-#             [ --help ] [ -h ] [ -? ]
+#             [ --help ] [ -? ]
 #             [ --about ]
 #             [ --version ] [ --ver ] [ -v ] [--about ]
 #             [ --update ] [ -u ]
 #             [ --history ] [ --hist ]
 #             [] [ text ] [ dialog ] [ whiptail ]
-#             [ --help dialog ]  [ --help whiptail ]
-#             [ --about dialog ] [ --about whiptail ]
-#             [ --hist dialog ]  [ --hist whiptail ]
 #          $2=Argument
-#             [ text ] [ dialog ] [ whiptail ] 
+#             [] [ text ] [ dialog ] [ whiptail ] 
 #    Uses: None.
 # Outputs: GUI, ERROR.
 #
