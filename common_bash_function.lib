@@ -1,8 +1,23 @@
 #!/bin/bash
 #
-# Copyright 2020 Robert D. Chin
+# ©2021 Copyright 2021 Robert D. Chin
+# Email: RDevChin@Gmail.com
 #
 # Usage: source common_bash_function.lib
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # +--------------------------------------------------------------------------+
 # |                                                                          |
@@ -13,7 +28,7 @@
 #  Format: <#@@> <Menu Option> <#@@> <Description of Menu Option> <#@@> <Corresponding function or action or cammand>
 # WARNING: Text strings cannot include apostrophes (').
 #
-#@@Exit#@@Exit to command-line prompt.#@@break
+#@@Exit#@@Exit this menu.#@@break
 #
 #@@About#@@Version information of this script.#@@f_about^$GUI
 #
@@ -25,7 +40,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2020-12-18 16:21"
+VERSION="2021-02-16 13:30"
 #
 # +----------------------------------------+
 # |            Brief Description           |
@@ -33,50 +48,24 @@ VERSION="2020-12-18 16:21"
 #
 #& Brief Description
 #&
-#& Description goes here.
-#& 
-#& Required scripts: first.sh, second.sh, third.sh,
-#&                   example_module_main.lib
+#& Library of BASH functions, common_bash_function.lib is a child dependency
+#& used by assorted scripts.
 #&
-#& Usage: bash example.sh
-#&        (not sh example.sh)
-#
-# +----------------------------------------+
-# |             Help and Usage             |
-# +----------------------------------------+
-#
-#?    Usage: bash example.sh [OPTION]
-#? Examples:
-#?
-#? bash example.sh            Use Dialog or Whiptail or Cmd-line UI.
-#?                            (in that order of preference)
-#?
-#?                            Force display to use a different UI.
-#? bash example.sh text       Use Cmd-line user-interface. (80x24 min.)
-#?                 dialog     Use Dialog   user-interface.
-#?                 whiptail   Use Whiptail user-interface.
-#?
-#? bash example.sh --help     Displays this help message.
-#?                 -?
-#?                            Force display to use a different UI.
-#?                 -? dialog  --help whiptail
-#?
-#? bash example.sh --about    Displays script version.
-#?                 --version
-#?                 --ver
-#?                 -v
-#?                            Force display to use a different UI.
-#?                 -v dialog --ver whiptail --about dialog
-#?
-#? bash example.sh --update   Update script.
-#?                 -u
-#?                            Force display to use a different UI.
-#?                 -u dialog  --update whiptail
-#?
-#? bash example.sh --history  Displays script code history.
-#?                 --hist
-#?                            Force display to use a different UI.
-#?                 --hist dialog  --history whiptail
+#& Usage: source common_bash_function.lib
+#&
+#&    This program is free software: you can redistribute it and/or modify
+#&    it under the terms of the GNU General Public License as published by
+#&    the Free Software Foundation, either version 3 of the License, or
+#&    (at your option) any later version.
+#&
+#&
+#&    This program is distributed in the hope that it will be useful,
+#&    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#&    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#&    GNU General Public License for more details.
+#&
+#&    You should have received a copy of the GNU General Public License
+#&    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # +----------------------------------------+
 # |           Code Change History          |
@@ -85,6 +74,30 @@ VERSION="2020-12-18 16:21"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2021-02-16 *f_menu_main_TEMPLATE, f_menu_sub_TEMPLATE added Summary.
+##
+## 2021-02-14 *f_message fixed bug where temporary file was not deleted.
+##            *f_msg_ui_str_box_size added warning comment to aid debugging.
+##
+## 2021-02-13 *Updated to latest standards.
+##            *f_update_menu_txt changed menu item text.
+##
+## 2021-02-09 *Updated to latest standards.
+##
+## 2021-02-08 *Updated to latest standards. f_check_version_TEMPLATE,
+##             f_display_common_TEMPLATE, f_menu_main_TEMPLATE,
+##             f_menu_sub_TEMPLATE.
+##
+## 2021-01-29 *f_source_TEMPLATE added.
+##
+## 2021-01-27 *f_message, f_msg_ui_str_ok, f_msg_ui_file_ok added feature
+##             to substitute labels for the "OK" and "Exit" buttons.
+##
+## 2021-01-17 *f_version_compare improve messages to user.
+##
+## 2021-01-14 *"Brief Description" added General Public License 3 notice.
+##            *Added General Public License 3 notice at head of script.
 ##
 ## 2020-12-18 *"Help and Usage" message improved.
 ##            *f_arguments updated comments.
@@ -261,7 +274,7 @@ f_script_path () {
 # |        Function f_check_version_TEMPLATE        |
 # +----------------------------------------+
 #
-#     Rev: 2020-10-23
+#     Rev: 2021-02-08
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #    Uses: SERVER_DIR, MP_DIR, TARGET_DIR, TARGET_FILE, VERSION, TEMP_FILE, ERROR.
 # Outputs: $1=GUI.
@@ -283,10 +296,12 @@ f_script_path () {
 #
 f_check_version_TEMPLATE () {
       #
+      #
       #=================================================================
       # EDIT THE LINES BELOW TO DEFINE THE LAN FILE SERVER DIRECTORY AND
       # SHARED MOUNTPOINT DIRECTORY, LOCAL TARGET DIRECTORY AND FILE. 
       #=================================================================
+      #
       #
       # LAN File Server shared directory.
       SERVER_DIR="[ FILE SERVER DIRECTORY NAME GOES HERE ]"
@@ -309,10 +324,12 @@ f_check_version_TEMPLATE () {
       FILE_LIST=$THIS_DIR/$THIS_FILE"_file_temp.txt"
       ERROR=0
       #
+      #
       #=================================================================
       # UNCOMMENT AND EDIT THE LINES BELOW TO SPECIFY THE FILE NAMES.
       # FILE NAMES TO UPDATE INCLUDE ALL DEPENDENT LIBRARIES.
       #=================================================================
+      #
       #
       # Create list of files to update and write to temporary file, FILE_LIST.
       #
@@ -333,7 +350,7 @@ f_check_version_TEMPLATE () {
 # |       Function f_version_compare       |
 # +----------------------------------------+
 #
-#     Rev: 2020-12-11
+#     Rev: 2021-01-17
 #  Inputs: $1=UI.
 #          $2=Samba File server Directory
 #          $3=Local Mount Point (Directory)
@@ -342,6 +359,7 @@ f_check_version_TEMPLATE () {
 #          $6=Version of Local file. String.
 #          $7=Temporary file name with list of files to be upgraded.
 #    Uses: LINE, VER.
+# Outputs: ERROR, ANS.
 #
 f_version_compare () {
       #
@@ -371,13 +389,31 @@ f_version_compare () {
                f_message $1 "OK" "Error Missing Local Repository Directory" "Failed to access Local Repository Directory. Cannot compare script versions."
             fi
             #
-            f_message $1 "OK" "Version Information" "From Local Repository\n$4\nFile $5 $VERSION_RELEASE\n\nFrom this PC\nFile $5 $VER"
+            #f_message $1 "OK" "Version Information" "From Local Repository\n$4\nFile $5 $VERSION_RELEASE\n\nFrom this PC\nFile $5 $VER"
+            VER_MSG=$7"_MSG.txt"
+            echo "From Local Repository" > $VER_MSG
+            echo "$4" >> $VER_MSG
+            echo "File $5 $VERSION_RELEASE" >> $VER_MSG
+            echo >> $VER_MSG
+            echo "From this PC" >> $VER_MSG
+            echo "File $5 $VER" >> $VER_MSG
+            echo >> $VER_MSG
+            echo "                        >>> CAUTION <<<" >> $VER_MSG
+            echo >> $VER_MSG
+            echo -e "If you answer \"Yes\" to the next question \"Copy from Repository?\"" >> $VER_MSG
+            echo    "        ALL the files listed below WILL be OVER-WRITTEN." >> $VER_MSG 
+            echo >> $VER_MSG
+            cat $7 >> $VER_MSG
+            f_message $1 "OK" "List of Files to be Copied" $VER_MSG
+            #
+            rm $VER_MSG
+            #
          else
             f_message $1 "OK" "Error Mounting Local Repository Directory" "Failed to mount Local Repository Directory. Cannot compare script versions."
          fi
          #
          if [ $ERROR -eq 0 ] ; then
-            f_yn_question $1 "N" "Copy from Repository?" "COPY from Repository\n$5 $VERSION_RELEASE\n\nand OVERWRITE\n\n$5 $VER  (on this PC?)"
+            f_yn_question $1 "N" "Copy from Repository?" "COPY from Repository\n$5 $VERSION_RELEASE\n\nand OVERWRITE\n\n$5 $VER\nalong with those files previously listed (on this PC?)"
             #
             if [ $ANS -eq 0 ] ; then
                # Yes, copy from repository.
@@ -386,7 +422,8 @@ f_version_compare () {
                while read LINE
                      do
                         eval cp -p $4/$LINE . 2>$TEMP_FILE # Write any error messages to file $TEMP_FILE.
-                        f_message $1 "OK" "Copy $LINE" "Copying $4/$LINE" 1  # Diagnostic line.
+                        # f_message $1 "OK" "Copy $LINE" "Copying $4/$LINE" 1  # Diagnostic line.
+                        f_message $1 "NOK" "Copy $LINE" "Copying $4/$LINE" 2 2>$TEMP_FILE # Write any error messages to file $TEMP_FILE.
                         #
                         # Make file executable (useable).
                         chmod +x $LINE
@@ -958,7 +995,7 @@ f_help_message () {
 # |     Function f_display_common_TEMPLATE      |
 # +------------------------------------+
 #
-#     Rev: 2020-08-07
+#     Rev: 2021-02-08
 #  Inputs: $1=GUI - "text", "dialog" or "whiptail" the preferred user-interface.
 #          $2=Delimiter of text to be displayed.
 #          $3="NOK", "OK", or null [OPTIONAL] to control display of "OK" button.
@@ -980,10 +1017,13 @@ f_display_common_TEMPLATE () {
       # For that reason, all library files now have the line
       # THIS_FILE="[LIBRARY_FILE.lib]" deleted.
       #
+      #
       #================================================================================
       # EDIT THE LINE BELOW TO DEFINE $THIS_FILE AS THE ACTUAL FILE NAME WHERE THE 
       # ABOUT, CODE HISTORY, AND HELP MESSAGE TEXT IS LOCATED.
       #================================================================================
+      #
+      #
                                            #
       THIS_FILE="[ THIS FILE GOES HERE ]"  # <<<--- INSERT ACTUAL FILE NAME HERE.
                                            #
@@ -1224,7 +1264,7 @@ f_yn_defaults () {
 # |       Function f_message     |
 # +------------------------------+
 #
-#     Rev: 2020-07-16
+#     Rev: 2021-02-14
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -1233,9 +1273,11 @@ f_yn_defaults () {
 #          $3 - Title.
 #          $4 - Text string or text file. 
 #          $5 - (Optional for functions f_msg_ui/txt_str_nok) Pause for $5 seconds to allow text to be read.
+#          $6 - (Optional) Text string to substitute for the "OK" label on the "OK" button.
+#          $7 - (Optional) Text string to substitute for the "Cancel" label on the "Cancel" button.
 #    Uses: None.
 # Outputs: ERROR.
-#   Usage: 1. f_message $GUI "OK" "Test of String in quotes" "This is a test of \Z6cyan software BASH script.\Zn\nI hope it works!"
+#   Usage: 1. f_message $GUI "OK" "Test of String in quotes" "This is a test of \Z6cyan software BASH script.\n\ZnI hope it works!"
 #
 #          2. In this example, the quotation marks around the "$STRING" variable name are required.
 #             STRING=$(echo "\"Roses are \Z1\ZbRED\Zn, Violets are \Z4BLUE\Zn, what say you?\"")
@@ -1284,11 +1326,14 @@ f_message () {
                  #
                  if [ "$2" = "OK" ] ; then
                     # Display contents of text file with an [OK] button.
-                    f_msg_ui_file_ok $1 $2 "$3" "$4" $YBOX $XBOX
+                    f_msg_ui_file_ok $1 $2 "$3" "$4" $YBOX $XBOX "$6" "$7"
                  else
                     # Display contents of text file with a pause for n seconds.
                     f_msg_ui_file_nok $1 $2 "$3" "$4" $YBOX $XBOX "$5"
                  fi
+                 #
+                 # Remove temporary text file.
+                 rm $4
                  #
               else
                  # If $4 is a text string, then does it contain just one
@@ -1299,7 +1344,7 @@ f_message () {
                  #
                  if [ "$2" = "OK" ] ; then
                     # Display contents of text string with an [OK] button.
-                    f_msg_ui_str_ok $1 $2 "$3" "$4" $YBOX $XBOX
+                    f_msg_ui_str_ok $1 $2 "$3" "$4" $YBOX $XBOX "$6" "$7"
                  else
                     # Display contents of text string with a pause for n seconds.
                     f_msg_ui_str_nok $1 $2 "$3" "$4" $YBOX $XBOX "$5"
@@ -1345,10 +1390,6 @@ f_message () {
               #
            ;;
       esac
-      #
-      if [ -r $TEMP_FILE ] ; then
-         rm $TEMP_FILE
-      fi
       #
 } # End of function f_message.
 #
@@ -1467,7 +1508,7 @@ f_msg_ui_file_box_size () {
 # |   Function f_msg_ui_file_ok  |
 # +------------------------------+
 #
-#     Rev: 2020-05-14
+#     Rev: 2021-01-27
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -1477,6 +1518,9 @@ f_msg_ui_file_box_size () {
 #          $4 - Text string or text file. 
 #          $5 - Box Height in characters.
 #          $6 - Box Width  in characters.
+#          $7 - (Optional) Text string to substitute for the "OK" label on the "OK" button.
+#          $8 - (Optional) Text string to substitute for the "Cancel" label on the "Cancel" button.
+#
 #    Uses: None.
 # Outputs: ERROR. 
 #
@@ -1484,6 +1528,13 @@ f_msg_ui_file_ok () {
       #
       # $4 is a text file.
       # If $2 is "OK" then use a Dialog/Whiptail textbox.
+      #
+      # Is there a label substitute for the "Exit" label?
+      if [ -n "$7" ] ; then
+         OK_LABEL="$7"
+      else
+         OK_LABEL="OK"
+      fi
       #
       case $1 in
            dialog)
@@ -1503,7 +1554,7 @@ f_msg_ui_file_ok () {
               #
               # Dialog box "--textbox" and Whiptail cannot use "\Z" commands.
               # No --colors option for Dialog --textbox.
-              dialog --title "$3" --textbox "$4" $Y $X
+              dialog --exit-label "$OK_LABEL" --title "$3" --textbox "$4" $Y $X
            ;;
            whiptail)
               # Whiptail needs about 7 more lines for the header and [OK] button.
@@ -1520,7 +1571,7 @@ f_msg_ui_file_ok () {
                  X=$XSCREEN
               fi
               #
-              whiptail --scrolltext --title "$3" --textbox "$4" $Y $X
+              whiptail --scrolltext --ok-button "$OK_LABEL" --title "$3" --textbox "$4" $Y $X
            ;;
       esac
       #
@@ -1636,7 +1687,11 @@ f_msg_ui_str_box_size () {
       #
       # Debug hint: If the box has the minimum size regardless of length or width of text,
       #             the variable $TEMP_FILE may have been unset (i.e. unset TEMP_FILE).
-      #             If the $TEMP_FILE is undefined, you will have a minimum box size.
+      #
+      #             >>> If the $TEMP_FILE is undefined,   <<<
+      #             >>> you will have a minimum box size. <<<
+      #
+      #             >>> TEMP_FILE must be defined even if $1 is a string. <<<
       #
       case $1 in
            *\n*)
@@ -1690,7 +1745,7 @@ f_msg_ui_str_box_size () {
 # |   Function f_msg_ui_str_ok   |
 # +------------------------------+
 #
-#     Rev: 2020-05-14
+#     Rev: 2021-01-27
 #  Inputs: $1 - "text", "dialog" or "whiptail" The CLI GUI application in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -1700,6 +1755,8 @@ f_msg_ui_str_box_size () {
 #          $4 - Text string or text file. 
 #          $5 - Box Height in characters.
 #          $6 - Box Width  in characters.
+#          $7 - (Optional) Text string to substitute for the "OK" label on the "OK" button.
+#          $8 - (Optional) Text string to substitute for the "Cancel" label on the "Cancel" button.
 #    Uses: None.
 # Outputs: ERROR. 
 #
@@ -1710,6 +1767,13 @@ f_msg_ui_str_ok () {
       #
       # Calculate line length of $4 if it contains "\n" <new line> markers.
       # Find length of all sentences delimited by "\n"
+      #
+      # Is there a label substitute for the "OK" label?
+      if [ -n "$7" ] ; then
+         OK_LABEL="$7"
+      else
+         OK_LABEL="OK"
+      fi
       #
       case $1 in
            dialog)
@@ -1728,7 +1792,7 @@ f_msg_ui_str_ok () {
               fi
               #
               # Dialog boxes "--msgbox" "--infobox" can use option --colors with "\Z" commands for font color bold/normal.
-              dialog --colors --title "$3" --msgbox "$4" $Y $X
+              dialog --colors --title "$3" --ok-label "$OK_LABEL" --msgbox "$4" $Y $X
            ;;
            whiptail)
               # Whiptail only has options --textbox or--msgbox (not --infobox in earlier versions).
@@ -1748,9 +1812,23 @@ f_msg_ui_str_ok () {
                  X=$XSCREEN
               fi
               #
+              # Is there a label substitute for the "OK" label?
+              if [ -n "$7" ] ; then
+                 OK_LABEL="$7"
+              else
+                 OK_LABEL="OK"
+              fi
+              #
+              # Is there a label substitute for the "CANCEL" label?
+              if [ -n "$8" ] ; then
+                 CANCEL_LABEL="$8"
+              else
+                 CANCEL_LABEL="Cancel"
+              fi
+              #
               # Whiptail only has options --textbox or--msgbox (not --infobox in earlier versions).
               # f_msg_ui_str_box_size creates $ZNO which is the text string $4 but stripped of any Dialog "\Z" commands.
-              whiptail --title "$3" --msgbox "$ZNO" $Y $X
+              whiptail --title "$3" --ok-button "$OK_LABEL" --msgbox "$ZNO" $Y $X
            ;;
       esac
       #
@@ -2078,7 +2156,7 @@ f_menu_arrays () {
 # |        Function f_update_menu_txt      |
 # +----------------------------------------+
 #
-#     Rev: 2020-07-16
+#     Rev: 2021-02-13
 #  Inputs: $1=GUI - "dialog" or "whiptail" The CLI GUI application in use.
 #          $2=GENERATED_FILE.
 #          $3=Menu Title.
@@ -2191,7 +2269,7 @@ f_update_menu_txt () {
                 # if longer than maximum window or screen width.
                 #
                 # Example: "$YNUM $CHOICE - $SUMMARY"
-                # CHOICE="0 Quit - Quit to command-line prompt." where array CHOICE[1]="Quit"
+                # CHOICE="0 Quit - Exit this menu." where array CHOICE[1]="Quit"
                 CHOICE="$YNUM $CHOICE - $SUMMARY"
                 CHOICE_LENGTH=${#CHOICE}
                 # Is the length of string CHOICE plus SUMMARY > Maximum window width?
@@ -2375,10 +2453,15 @@ f_update_menu_gui () {
 # |          Function f_menu_main_TEMPLATE          |
 # +----------------------------------------+
 #
-#     Rev: 2020-09-18
+#     Rev: 2021-02-16
 #  Inputs: $1=GUI.
 #    Uses: ARRAY_FILE, GENERATED_FILE, MENU_TITLE.
 # Outputs: None.
+#
+# Summary: Template for Main-Menu 
+#          This Main Menu function checks its script for the Main Menu
+#          options delimited by "#@@" and if it does not find any, then
+#          it it defaults to the specified library script.
 #
 # PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
 #              THIS FUNCTION INTO THE MAIN SCRIPT WHICH WILL CALL IT.
@@ -2404,10 +2487,12 @@ f_menu_main_TEMPLATE () { # Create and display the Main Menu.
          ARRAY_FILE="$GENERATED_FILE"
       else
          #
+         #
          #================================================================================
          # EDIT THE LINE BELOW TO DEFINE $ARRAY_FILE AS THE ACTUAL FILE NAME (LIBRARY)
          # WHERE THE MENU ITEM DATA IS LOCATED. THE LINES OF DATA ARE PREFIXED BY "#@@".
          #================================================================================
+         #
          #
          # Specify library file name with menu item data.
          ARRAY_FILE="[FILENAME_GOES_HERE]"
@@ -2445,10 +2530,19 @@ f_menu_main_TEMPLATE () { # Create and display the Main Menu.
 # |          Function f_menu_SUB-MENU_TEMPLATE  |
 # +----------------------------------------+
 #
-#     Rev: 2020-09-18
+#     Rev: 2020-02-16
 #  Inputs: $1=GUI.
 #    Uses: ARRAY_FILE, GENERATED_FILE, MENU_TITLE.
 # Outputs: None.
+#
+# Summary: Template for Sub-Menus 
+#          Simpler implementation than the Main Menu function.
+#          It assumes that this function is in a separate script library
+#          file which contains the Sub-Menu options delimited by "#@@".
+#
+#          Whereas the Main Menu function checks its script for the
+#          Main Menu options delimited by "#@@" and if it does not
+#          find any then it defaults to the specified library script.
 #
 f_menu_sub_TEMPLATE () {
       #
@@ -2456,17 +2550,19 @@ f_menu_sub_TEMPLATE () {
       #
       # Create generated menu script from array data.
       #
-      # Note: ***If Menu title contains spaces,
+      # Note: ***If Sub-Menu title contains spaces,
       #       ***the size of the menu window will be too narrow.
       #
-      # Menu title MUST use underscores instead of spaces.
+      # Sub-Menu title MUST use underscores instead of spaces.
       MENU_TITLE="Sub-menu_Menu"  # Menu title must substitute underscores for spaces
       TEMP_FILE=$THIS_DIR/$THIS_FILE"_menu_sub-01_temp.txt"
+      #
       #
       #================================================================================
       # EDIT THE LINE BELOW TO DEFINE $ARRAY_FILE AS THE ACTUAL FILE NAME (LIBRARY)
       # WHERE THE MENU ITEM DATA IS LOCATED. THE LINES OF DATA ARE PREFIXED BY "#@@".
       #================================================================================
+      #
       #
       # Specify library file name with menu item data.
       ARRAY_FILE="[FILENAME_GOES_HERE]"
@@ -2768,4 +2864,31 @@ f_download_from_local_repository () {
       fi
       #
 } # End of function f_download_from_local_repository.
+#
+# +----------------------------------------+
+# |             Function f_source_TEMPLATE          |
+# +----------------------------------------+
+#
+#     Rev: 2020-10-22
+#  Inputs: $1=File name to source.
+# Outputs: ANS.
+#
+# PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
+#              THIS FUNCTION INTO ANY SCRIPT WHICH DEPENDS ON THE
+#              LIBRARY FILE "common_bash_function.lib".
+#
+f_source_TEMPLATE () {
+      if [ -x "$1" ] ; then
+         # If $1 is a library, then source it.
+         case $1 in
+              common_bash_function.lib)
+                 source $1
+              ;;
+              *.lib)
+                 source $1
+              ;;
+         esac
+      fi
+      #
+} # End of function f_source.
 #
