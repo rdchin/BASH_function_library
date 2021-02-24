@@ -24,7 +24,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2021-02-23 19:46"
+VERSION="2021-02-24 00:28"
 THIS_FILE="$0"
 TEMP_FILE=$THIS_FILE"_temp.txt"
 GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
@@ -36,31 +36,18 @@ GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
 #================================================================
 #
 #
-#-------------------------------------------------
-# Set variables to check for network connectivity.
-#-------------------------------------------------
-#
-# Ping Local File Server Repository
-# PING_LAN_TARGET="[FILE SERVER NAME]"
-PING_LAN_TARGET="scotty"
-#
-# Ping Web File Server Repository
-# PING_WAN_TARGET="[WEB FILE REPOSITORY]"
-PING_WAN_TARGET="raw.githubusercontent.com"
-#
 #--------------------------------------------------------------
 # Set variables to mount the Local Repository to a mount-point.
 #--------------------------------------------------------------
 #
 # LAN File Server shared directory.
-SERVER_DIR="//scotty/files"
+SERVER_DIR=SERVER_DIR="[FILE_SERVER_DIRECTORY_NAME_GOES_HERE]"
 #
 # Local PC mount-point directory.
-MP_DIR="/mnt/scotty/files"
+MP_DIR="[LOCAL_MOUNT-POINT_DIRECTORY_NAME_GOES_HERE]"
 #
-# Local PC target directory, sub-directory below mount-point directory.
-# TARGET_DIR="[ LOCAL MOUNT-POINT DIRECTORY/REPOSITORY SUB-DIRECTORY PATH GOES HERE ]"
-TARGET_DIR="/mnt/scotty/files/LIBRARY/PC-stuff/PC-software/BASH_Scripting_Projects/Repository"
+# Local File Server Local Repository full path
+LOCAL_REPO_DIR="[LOCAL_MOUNT-POINT_DIRECTORY_APPEND_FILE_SERVER_PATH_TO_REPOSITORY]"
 #
 #
 #=================================================================
@@ -81,9 +68,8 @@ TARGET_DIR="/mnt/scotty/files/LIBRARY/PC-stuff/PC-software/BASH_Scripting_Projec
 FILE_LIST=$THIS_FILE"_file_temp.txt"
 #
 # Format: [File Name]^[Local/Web]^[Local repository directory]^[web repository directory]
-echo "$THIS_FILE^Local^/mnt/scotty/files/LIBRARY/PC-stuff/PC-software/BASH_Scripting_Projects/Repository"           > $FILE_LIST
-echo "example.lib^Local^/mnt/scotty/files/LIBRARY/PC-stuff/PC-software/BASH_Scripting_Projects/Repository" >> $FILE_LIST
-echo "common_bash_function.lib^Web^/mnt/scotty/files/LIBRARY/PC-stuff/PC-software/BASH_Scripting_Projects/Repository^https://raw.githubusercontent.com/rdchin/BASH_function_library/master/" >> $FILE_LIST
+echo "example.lib^Local^$LOCAL_REPO_DIR^https://raw.githubusercontent.com/rdchin/BASH_function_library/master/"            >> $FILE_LIST
+echo "common_bash_function.lib^Web^$LOCAL_REPO_DIR^https://raw.githubusercontent.com/rdchin/BASH_function_library/master/" >> $FILE_LIST
 #
 # Create a list of files FILE_DL_LIST, which need to be downloaded.
 
@@ -191,6 +177,12 @@ FILE_DL_LIST=$THIS_FILE"_file_dl_temp.txt"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2021-02-23 *fdl_download_missing_scripts rewrote logic for downloading,
+##             extensively tested mountpoint action, Local Repository and
+##             Web Repository error fallback logic of downloading when
+##             either repository and/or target file were not available.
+##            *f_choose_dl_source, f_choose_download_source deleted.
 ##
 ## 2021-02-21 *Section "Code Change History" added instructions.
 ##
@@ -323,22 +315,31 @@ f_display_common () {
 # |             Function f_source          |
 # +----------------------------------------+
 #
-#     Rev: 2020-10-22
+#     Rev: 2021-02-23
 #  Inputs: $1=File name to source.
-# Outputs: ANS.
+# Outputs: ERROR.
 #
 f_source () {
       #
       if [ -x "$1" ] ; then
          # If $1 is a library, then source it.
          case $1 in
-              common_bash_function.lib)
-                 source $1
-              ;;
               *.lib)
                  source $1
+                 ERROR=$?
+                 #
+                 if [ $ERROR -ne 0 ] ; then
+                    echo
+                    echo ">>>>>>>>>><<<<<<<<<<<"
+                    echo ">>> Library Error <<<"
+                    echo ">>>>>>>>>><<<<<<<<<<<"
+                    echo
+                    echo -e "$1 cannot be sourced using command:\n\"source $1\""
+                    echo
+                 fi
               ;;
          esac
+         #
       fi
       #
 } # End of function f_source.
@@ -426,74 +427,6 @@ f_menu_main () { # Create and display the Main Menu.
 } # End of function f_menu_main.
 #
 # +----------------------------------------+
-# |      Function fdl_choose_dl_source     |
-# +----------------------------------------+
-#
-#     Rev: 2020-10-22
-#  Inputs: $1="Web" or "Local".
-#          $2=file to download.
-# Outputs: ANS.
-#
-fdl_choose_dl_source () {
-      #
-      DL_FILE=$(echo $DL_LINE | awk -F "^" '{ print $1 }')
-      DL_SOURCE=$(echo $DL_LINE | awk -F "^" '{ print $2 }')
-      # Format [File name]^[Local/Web]
-      DL_LINE=$(echo $DL_LINE | awk -F "^" '{ print $1"^"$2}')
-      #
-      fdl_choose_download_source $DL_SOURCE $DL_FILE
-      # Insert ANS into FILE_DL_LIST.
-      # Substitute DL_LINE_NEW for DL_LINE.
-      # ANS [Local/Web] is the project's download choice for all project files.
-      # ANS will over-write any existing value [Local/Web] for each project file.
-      # Substitute ANS for existing value whether "Local" or "Web".
-      DL_LINE_NEW=${DL_LINE/$DL_FILE^Local/$DL_FILE^$ANS}
-      DL_LINE_NEW=${DL_LINE/$DL_FILE^Web/$DL_FILE^$ANS}
-      #
-      # Change or substitute new ANS or download choice into download file list.
-      sed -i "s/$DL_LINE/$DL_LINE_NEW/" $FILE_DL_LIST
-      #
-} # End of function fdl_choose_dl_source.
-#
-# +----------------------------------------+
-# |   Function fdl_choose_download_source  |
-# +----------------------------------------+
-#
-#     Rev: 2020-10-22
-#  Inputs: $1="Web" or "Local".
-#          $2=file to download.
-# Outputs: ANS.
-#
-fdl_choose_download_source () {
-      #
-      # Is $1 specified or "local"?
-      ANS=""
-      if [ $1 != "Local" ] ; then
-         while [ "$ANS" = "" ]
-               do
-                  echo
-                  echo "Do you want to download the file: $2"
-                  echo -n "from the web repository? (W)eb or the local repository (L)ocal ($1):" ; read ANS
-                  case $ANS in
-                       [Ww])
-                          ANS="Web"
-                       ;;
-                       [Ll] | "")
-                          ANS="Local"
-                       ;;
-                       *)
-                          ANS="$1"
-                       ;;
-                  esac
-               done
-      else
-         # If "Local" download source, do not give a choice, use Local Repository for download.
-         ANS="Local"
-      fi
-      #
-} # End of function fdl_choose_download_source.
-#
-# +----------------------------------------+
 # |       fdl_dwnld_file_from_web_site     |
 # +----------------------------------------+
 #
@@ -510,16 +443,21 @@ fdl_choose_download_source () {
 fdl_dwnld_file_from_web_site () {
       #
       # $1 ends with a slash "/" so can append $2 immediately after $1.
+      echo
+      echo ">>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<"
+      echo ">>> Download file from Web Repository <<<"
+      echo ">>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<"
+      echo
       wget --show-progress $1$2
       ERROR=$?
       if [ $ERROR -ne 0 ] ; then
             echo
-            echo "!!! wget download failed !!!"
-            echo "from GitHub.com for file: $2"
+            echo ">>>>>>>>>>>>>><<<<<<<<<<<<<<"
+            echo ">>> wget download failed <<<"
+            echo ">>>>>>>>>>>>>><<<<<<<<<<<<<<"
             echo
-            echo "Cannot continue, exiting program script."
-            sleep 3
-            exit 1  # Exit with error.
+            echo "Error copying from Web Repository file: \"$2.\""
+            echo
       else
          # Make file executable (useable).
          chmod +x $2
@@ -529,21 +467,17 @@ fdl_dwnld_file_from_web_site () {
             ERROR=0
          else
             echo
-            echo "File Error"
-            echo -e "$2 is missing or file is not executable.\n\nCannot continue, exiting program script."
-            sleep 2
-            ERROR=1
+            echo ">>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<"
+            echo ">>> File Error after download from Web Repository <<<"
+            echo ">>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<"
+            echo
+            echo "$2 is missing or file is not executable."
+            echo
          fi
       fi
       #
       # Make downloaded file executable.
       chmod 755 $2
-      #
-      echo
-      echo ">>> Please run program again after download. <<<"
-      echo
-      # Delay to read messages on screen.
-      echo -n "Press \"Enter\" key to continue" ; read X
       #
 } # End of function fdl_dwnld_file_from_web_site.
 #
@@ -554,8 +488,8 @@ fdl_dwnld_file_from_web_site () {
 #     Rev: 2021-02-23
 #  Inputs: $1=Local Repository Directory.
 #          $2=File to download.
-#    Uses: TEMP_FILE, SMBUSER, PASSWORD, ERROR.
-# Outputs: TEMP_FILE.
+#    Uses: TEMP_FILE.
+# Outputs: ERROR.
 #
 # This is used to download any file with a text-only UI.
 # This can be used to download the Common Function Library.
@@ -563,13 +497,22 @@ fdl_dwnld_file_from_web_site () {
 #
 fdl_dwnld_file_from_local_repository () {
       #
+      echo
+      echo ">>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<"
+      echo ">>> File Copy from Local Repository <<<"
+      echo ">>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<"
+      echo
       eval cp -p $1/$2 .
       ERROR=$?
       #
       if [ $ERROR -ne 0 ] ; then
          echo
-         echo -e "Error occurred\nError copying $2."
-         sleep 2
+         echo ">>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<"
+         echo ">>> File Copy Error from Local Repository <<<"
+         echo ">>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<"
+         echo
+         echo -e "Error copying from Local Repository file: \"$2.\""
+         echo
          ERROR=1
       else
          # Make file executable (useable).
@@ -580,19 +523,19 @@ fdl_dwnld_file_from_local_repository () {
             ERROR=0
          else
             echo
-            echo "File Error"
-            echo -e "$2 is missing or file is not executable.\n\nCannot continue, exiting program script."
-            sleep 3
+            echo ">>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<"
+            echo ">>> File Error after copy from Local Repository <<<"
+            echo ">>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<"
+            echo
+            echo -e "File \"$2\" is missing or file is not executable."
+            echo
             ERROR=1
          fi
       fi
       #
-      if [ $ERROR -ne 0 ] ; then
+      if [ $ERROR -eq 0 ] ; then
          echo
-         echo -e "Error occurred\nError copying $2."
-      else
-         echo
-         echo -e "Successful Update of $2 to latest version.\n\nScript must be re-started to use the latest version."
+         echo -e "Successful Update of file \"$2\" to latest version.\n\nScript must be re-started to use the latest version."
          echo "____________________________________________________"
       fi
       #
@@ -602,11 +545,11 @@ fdl_dwnld_file_from_local_repository () {
 # |              fdl_mount_local             |
 # +------------------------------------------+
 #
-#     Rev: 2021-01-30
+#     Rev: 2021-02-23
 #  Inputs: $1=Server Directory.
 #          $2=Local Mount Point Directory
 #          TEMP_FILE
-#    Uses: TARGET_DIR, UPDATE_FILE, ERROR.
+#    Uses: TARGET_DIR, UPDATE_FILE, ERROR, SMBUSER, PASSWORD.
 # Outputs: ERROR.
 #
 fdl_mount_local () {
@@ -616,23 +559,29 @@ fdl_mount_local () {
       ERROR=$?
       if [ $ERROR -ne 0 ] ; then
          # Mount directory.
+         # Cannot use any user prompted read answers if this function is in a loop where file is a loop input.
+         # The read statements will be treated as the next null parameters in the loop without user input.
+         # To solve this problem, specify input from /dev/tty "the keyboard".
+         #
          echo
-         read -p "Enter user name: " SMBUSER
+         read -p "Enter user name: " SMBUSER < /dev/tty
          echo
-         read -s -p "Enter Password: " PASSWORD
-         echo
+         read -s -p "Enter Password: " PASSWORD < /dev/tty
+         echo sudo mount -t cifs $1 $2
          sudo mount -t cifs -o username="$SMBUSER" -o password="$PASSWORD" $1 $2
          mountpoint $2 >/dev/null 2>$TEMP_FILE # Write any error messages to file $TEMP_FILE. Get status of mountpoint, mounted?.
          ERROR=$?
          if [ $ERROR -ne 0 ] ; then
             echo
-            echo "Mount failure"
+            echo ">>>>>>>>>><<<<<<<<<<<"
+            echo ">>> Mount failure <<<"
+            echo ">>>>>>>>>><<<<<<<<<<<"
             echo
-            echo "Directory mount-point $2 is not mounted."
+            echo -e "Directory mount-point \"$2\" is not mounted."
             echo
             echo -e "Mount using Samba failed. Are \"samba\" and \"cifs-utils\" installed?"
+            echo "------------------------------------------------------------------------"
             echo
-            echo -e "Press \"Enter\" key to continue."
          fi
          unset SMBUSER PASSWORD
       fi
@@ -719,50 +668,56 @@ fdl_download_missing_scripts () {
                        Local)
                           # Download from Local Repository on LAN File Server.
                           # Are LAN File Server directories available on Local Mount-point?
-                          fdl_mount_local $DL_REPOSITORY $TARGET_DIR
+                          fdl_mount_local $SERVER_DIR $MP_DIR
+                          #
                           if [ $ERROR -ne 0 ] ; then
-                             # Failed to mount File Server directory on Local Mount-point
+                             # Failed to mount LAN File Server directory on Local Mount-point.
                              # So download from Web Repository.
                              fdl_dwnld_file_from_web_site $DL_REPOSITORY $DL_FILE
                           else
-                             # Sucessful mount of File Server directory. 
+                             # Sucessful mount of LAN File Server directory. 
+                             # Continue with download from Local Repository on LAN File Server.
                              fdl_dwnld_file_from_local_repository $TARGET_DIR $DL_FILE
+                             #
+                             if [ $ERROR -ne 0 ] ; then
+                                # Failed to download from Local Repository on LAN File Server.
+                                # So download from Web Repository.
+                                fdl_dwnld_file_from_web_site $DL_REPOSITORY $DL_FILE
+                             fi
                           fi
                        ;;
                        Web)
                           # Download from Web Repository.
                           fdl_dwnld_file_from_web_site $DL_REPOSITORY $DL_FILE
                           if [ $ERROR -ne 0 ] ; then
-                             # Failed so download from Local Repository on LAN File Server.
-                             fdl_mount_local $DL_REPOSITORY $TARGET_DIR
-                             if [ $ERROR -ne 0 ] ; then
+                             # Failed so mount LAN File Server directory on Local Mount-point.
+                             fdl_mount_local $SERVER_DIR $MP_DIR
+                             #
+                             if [ $ERROR -eq 0 ] ; then
+                                # Successful mount of LAN File Server directory.
+                                # Continue with download from Local Repository on LAN File Server.
                                 fdl_dwnld_file_from_local_repository $TARGET_DIR $DL_FILE
                              fi
                           fi
                        ;;
                   esac
-                  #
                done < $FILE_DL_LIST
          #
-         # Delete temporary files.
-         if [ -e $TEMP_FILE ] ; then
-            rm $TEMP_FILE
+         if [ $ERROR -ne 0 ] ; then
+            echo
+            echo
+            echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+            echo ">>> Download failed. Cannot continue, exiting program. <<<"
+            echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+            echo
+         else
+            echo
+            echo
+            echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+            echo ">>> Download is good. Re-run required, exiting program. <<<"
+            echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+            echo
          fi
-         #
-         if [ -r  $FILE_LIST ] ; then
-            rm  $FILE_LIST
-         fi
-         #
-         if [ -r  $FILE_DL_LIST ] ; then
-            rm  $FILE_DL_LIST
-         fi
-         #
-         echo
-         echo ">>> Please run program again after download. <<<"
-         echo
-         echo "Cannot continue, exiting program script."
-         sleep 3
-         exit 1  # Exit script after downloading dependent files and libraries.
          #
       fi
       #
@@ -774,6 +729,14 @@ fdl_download_missing_scripts () {
                # Invoke any library files.
                f_source $FILE
             done < $FILE_LIST
+      if [ $ERROR -ne 0 ] ; then
+         echo
+         echo
+         echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+         echo ">>> Invoking Libraries failed. Cannot continue, exiting program. <<<"
+         echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+         echo
+      fi
       #
 } # End of function fdl_download_missing_scripts.
 #
@@ -803,6 +766,28 @@ clear # Blank the screen.
 # Detect and download any missing scripts and libraries.
 #-------------------------------------------------------
 fdl_download_missing_scripts
+# Were any files/libraries missing?
+# Are there any problems with the download/copy of missing scripts?
+if [ -r  $FILE_DL_LIST ] || [ $ERROR -ne 0 ] ; then
+   # Yes, there were missing files or download/copy problems so exit program.
+   #
+   # Delete temporary files.
+   if [ -e $TEMP_FILE ] ; then
+      rm $TEMP_FILE
+   fi
+   #
+   if [ -r  $FILE_LIST ] ; then
+      rm  $FILE_LIST
+   fi
+   #
+   if [ -r  $FILE_DL_LIST ] ; then
+      rm  $FILE_DL_LIST
+   fi
+   #
+   exit 0  # This cleanly closes the process generated by #!bin/bash.
+           # Otherwise every time this script is run, another instance of
+           # process /bin/bash is created using up resources.
+fi
 #
 #***************************************************************
 # Process Any Optional Arguments and Set Variables THIS_DIR, GUI
