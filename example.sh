@@ -24,7 +24,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2021-02-24 00:41"
+VERSION="2021-02-25 23:32"
 THIS_FILE="$0"
 TEMP_FILE=$THIS_FILE"_temp.txt"
 GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
@@ -41,13 +41,13 @@ GENERATED_FILE=$THIS_FILE"_menu_generated.lib"
 #--------------------------------------------------------------
 #
 # LAN File Server shared directory.
-SERVER_DIR=SERVER_DIR="[FILE_SERVER_DIRECTORY_NAME_GOES_HERE]"
+SERVER_DIR="[FILE_SERVER_DIRECTORY_NAME_GOES_HERE]"
 #
 # Local PC mount-point directory.
 MP_DIR="[LOCAL_MOUNT-POINT_DIRECTORY_NAME_GOES_HERE]"
 #
-# Local File Server Local Repository full path
-LOCAL_REPO_DIR="[LOCAL_MOUNT-POINT_DIRECTORY_APPEND_FILE_SERVER_PATH_TO_REPOSITORY]"
+# Local PC mount-point with LAN File Server Local Repository full directory path.
+LOCAL_REPO_DIR="$MP_DIR/[DIRECTORY_PATH_TO_LOCAL_REPOSITORY]"
 #
 #
 #=================================================================
@@ -69,7 +69,7 @@ FILE_LIST=$THIS_FILE"_file_temp.txt"
 #
 # Format: [File Name]^[Local/Web]^[Local repository directory]^[web repository directory]
 echo "example.lib^Local^$LOCAL_REPO_DIR^https://raw.githubusercontent.com/rdchin/BASH_function_library/master/"            >> $FILE_LIST
-echo "common_bash_function.lib^Web^$LOCAL_REPO_DIR^https://raw.githubusercontent.com/rdchin/BASH_function_library/master/" >> $FILE_LIST
+echo "common_bash_function.lib^Local^$LOCAL_REPO_DIR^https://raw.githubusercontent.com/rdchin/BASH_function_library/master/" >> $FILE_LIST
 #
 # Create a list of files FILE_DL_LIST, which need to be downloaded.
 
@@ -177,6 +177,8 @@ FILE_DL_LIST=$THIS_FILE"_file_dl_temp.txt"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2021-02-25 *Updated to latest standards and improved comments.
 ##
 ## 2021-02-23 *fdl_download_missing_scripts rewrote logic for downloading,
 ##             extensively tested mountpoint action, Local Repository and
