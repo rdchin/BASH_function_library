@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2022-10-05 21:07"
+VERSION="2023-01-23 15:37"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -63,6 +63,8 @@ VERSION="2022-10-05 21:07"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2023-01-23 *f_web_browser added.
 ##
 ## 2023-01-21 *f_text_editor fixed bug, missing parameter for f_message.
 ##
@@ -1659,6 +1661,110 @@ f_text_editor () {
       fi
       #
 } # End of function f_text_editor.
+#
+# +----------------------------------------+
+# |          Function f_web_browser        |
+# +----------------------------------------+
+#
+#     Rev: 2023-01-23
+#  Inputs: $1=GUI
+#    Uses: WEB_BROWSER_FOUND, WEB_BROWSER_APPS.
+# Outputs: WEB_BROWSER, RUNAPP, ERROR.
+#
+# Summary: Detect web browser application.
+#
+# Dependencies: f_message.
+#
+f_web_browser () {
+      #
+      #   +--------------------------------------------------------------+
+      #   | Determine what environment is in use, pure CLI or X-Windows? |
+      #   +--------------------------------------------------------------+
+      # Determine if user is in a pure CLI environment
+      # or if using a CLI within an X-Window on a GUI Desktop.
+      #
+      # Set XWIN equal to the value of $DISPLAY.
+      XWIN=$(echo $DISPLAY)
+      #
+      # $DISPLAY is null if in a pure CLI environment.
+      # $DISPLAY is not null then in an X-Window environment.
+      #
+      # In an X-Window environment:
+      # Format of $DISPLAY is: <hostname>:<Display number>.<Screen number>
+      #
+      # If on local PC (localhost) in X-Windows then <hostname> is null.
+      # i.e. ":0" or ":0.0"
+      #
+      # If on a remote file server "Mainfileserver" in X-Windows then:
+      # i.e. "Mainfileserver:0" or "Mainfileserver:0.1"
+      #
+      #
+      #================================================================================
+      # EDIT $WEB_BROWSER_APPS BELOW TO INCLUDE APPS FOR EITHER X-WINDOWS OR CLI.
+      # THE WEB BROWSER APPS APPS ARE LISTED IN THE ORDER OF PREFERENCE, FIRST APP IS
+      # FIRST USED (IF INSTALLED). IF NOT INSTALLED, THE FOR-LOOP WILL TRY THE NEXT APP.
+      #================================================================================
+      #
+      #
+      # Is the environment a pure CLI environment?
+      if [ -z $XWIN ] ; then
+         # Yes, a pure CLI environment so use only CLI file manager apps.
+         # List web browsers in preferred order with most preferred first.
+         WEB_BROWSER_APPS="links2 links elinks w3m "
+      else
+         # No, it is an X-Window environment so can use both X-Window and CLI file manager apps.
+         # List web browsers in preferred order with most preferred first.
+         WEB_BROWSER_APPS="firefox chromium chrome opera vivaldi"
+      fi
+      # Detect installed web browser (in order of preference).
+      #
+      #
+      #================================================================================
+      # EDIT THE LINE BELOW TO LIST ALL $WEB_BROWSER APPLICATIONS TO DETECT IF INSTALLED.
+      # FOR-LOOP CONTAINS LIST OF ALL RECOGNIZED WEB BROWSERS IN ORDER OF PREFERENCE.
+      #================================================================================
+      #
+      #
+      # Initialize variables.
+      RUNAPP=0
+      #
+      # Update: 2022-07-10 Web browsers elinks, lynx, and w3m do not work
+      #         on the "wol.jw.org/en/wol/" web site.
+      #
+      #         The web browsers links and link2 do work but for unknown
+      #         reasons, the web site is missing some days of daily text
+      #         when using a text-based web browser such as links or links2.
+      #
+      for WEB_BROWSER in $WEB_BROWSER_APPS
+          do
+             if [ $RUNAPP -eq 0 ] ; then
+                type $WEB_BROWSER >/dev/null 2>&1  # Test if $WEB_BROWSER application is installed.
+                ERROR=$?
+                #
+                # Is $WEB_BROWSER installed?
+                if [ $ERROR -eq 0 ] ; then
+                   # Yes, installed.
+                   RUNAPP=1
+                   #f_message $1 "OK" "DIAGNOSTIC MESAGE" "Web browser $WEB_BROWSER was detected in the loop."  # Diagnostic line.
+                   WEB_BROWSER_FOUND=$WEB_BROWSER
+                fi
+             fi
+          done
+      #
+      # Was a web browser detected? 
+      # For-loop outputs $WEB_BROWSER_FOUND.
+      if [ $RUNAPP -eq 1 ] ; then
+         #f_message $1 "OK" "DIAGNOSTIC MESAGE" "Web browser $WEB_BROWSER2 was detected post-loop."  # Diagnostic line.
+         #
+         # Set output to $WEB_BROWSER.
+         WEB_BROWSER=$WEB_BROWSER_FOUND
+      else
+         f_message $1 "OK" "Web Browser Error" "\nWeb browser was not automatically detected."
+      fi
+      #
+      unset WEB_BROWSER_FOUND WEB_BROWSER_APPS
+      #
+} # End of function f_web_browser.
 #
 # +----------------------------------------+
 # |          Function f_select_dir         |
