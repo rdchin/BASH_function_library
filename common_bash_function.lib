@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# ©2022 Copyright 2022 Robert D. Chin
+# ©2023 Copyright 2023 Robert D. Chin
 # Email: RDevChin@Gmail.com
 #
 # Usage: source common_bash_function.lib
@@ -63,6 +63,8 @@ VERSION="2022-10-05 21:07"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2023-01-21 *f_text_editor fixed bug, missing parameter for f_message.
 ##
 ## 2022-10-05 *f_menu_main_TEMPLATE improved comments.
 ##
@@ -1650,7 +1652,7 @@ f_text_editor () {
              done
          #
          if [ "$RUNAPP" -eq 0 ] ; then
-            f_message "OK" "Text Editor Error" "Text editor was not automatically detected."
+            f_message $1 "OK" "Text Editor Error" "Text editor was not automatically detected."
          fi
          #
          unset RUNAPP TEXT_EDITOR TEXT_EDITOR_APPS
@@ -1673,7 +1675,8 @@ f_text_editor () {
 #                            0 or null=Select multiple directories.
 #          THIS_DIR.
 #    Uses: TEMP_FILE, ANS, ERROR, SCRIPT_LIST.
-# Outputs: ANS (List of selected files), ERROR.
+# Outputs: ANS (List of selected directories delimited by spaces)
+#          ERROR.
 #
 # Summary: Prompt user-entered file name.
 #
@@ -1854,7 +1857,8 @@ f_select_dir () {
 #                              0 or null=Select multiple files.
 #          THIS_DIR, THIS_FILE.
 #    Uses: TEMP_FILE, ANS, ERROR, SCRIPT_LIST.
-# Outputs: ANS (List of selected files: "DIR1/FILE1 DIR2/FILE2 DIR3/FILE3..."), ERROR.
+# Outputs: ANS (List of selected files delimited by spaces: "DIR1/FILE1 DIR2/FILE2 DIR3/FILE3...")
+#          ERROR.
 #
 # Summary: Prompt user-entered file name.
 #
