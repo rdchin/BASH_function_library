@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2023-12-25 22:54"
+VERSION="2023-12-28 18:42"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -63,6 +63,11 @@ VERSION="2023-12-25 22:54"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2023-12-28 *f_select_dir_verify force a standard so that all dir names
+##             end in a trailing "/" or no "/")
+##            *f_select_file limited scope by using f_select_dir to choose
+##             the directory before searching for the file.
 ##
 ## 2023-12-25 *f_select_file for "whiptail" and "text" UI uses application
 ##             "fzf" which is licensed under the "MIT License".
@@ -1975,6 +1980,7 @@ f_web_browser () {
 #          THIS_DIR.
 #    Uses: TEMP_FILE2, ANS, ERROR, SCRIPT_LIST.
 # Outputs: ANS (List of selected directories delimited by spaces)
+#              Note: A selected directory does not include a trailing "/" forward-slash.
 #          ERROR.
 #
 # Summary: Prompt user-entered file name.
@@ -2091,13 +2097,6 @@ f_select_dir () {
               # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
               ERROR=0
               #
-              # Set ANS = contents of TEMP_FILE2 which is a string of selected directory names delimited by spaces.
-              if [ -e "$TEMP_FILE2" ] ; then
-                 ANS=$(cat $TEMP_FILE2)
-              else                 
-                 ANS=""
-                 ERROR=1
-              fi
            ;;
            whiptail | text)
               #
@@ -2125,6 +2124,9 @@ f_select_dir () {
                  #
                  f_message $1 "OK" "$DIR_DESCR" "At the next prompt, select the desired directory name\nby typing the first few letters of the name and using the up-down arrows.\n\nPress [ Enter ] key to select directory name.\n\nPress [ Esc ] key or [ Ctrl+C ] to EXIT or CANCEL selection."
                  #
+                 # Initialize ERROR for While-loop.
+                 ERROR=0
+                 #
                  while [ "$ERROR" -eq 0 ]
                        do
                           # Application "fzf" limitation is you can only select sub-directories
@@ -2136,7 +2138,8 @@ f_select_dir () {
                           #
                           # My work-around is to make the default directory the user's Home directory.
                           #
-                          f_select_dir_fzf
+                          # Use $3 instead of $DEFAULT_DIRECTORY as the latter may change.
+                          f_select_dir_fzf $1 "$DIR_DESCR" "$3" $4
                           #
                        done
               else
@@ -2154,26 +2157,47 @@ f_select_dir () {
                  while [ "$ERROR" -eq 0 ]
                        do
                           # The user-entered directory name is whatever is after $3 default parent directory.
-                          f_ask_question $1 "User-entered $DIR_DESCR name" "Enter $DIR_DESCR name(s):" "$DEFAULT_DIR"
+                          f_ask_question $1 "User-entered $DIR_DESCR name" "Enter $DIR_DESCR name(s) with full path:" "$DEFAULT_DIR"
                           DIR_SELECTED="$ANS"
                           #
                           # Confirm directory selection.
-                          f_select_dir2 $1 "$DIR_DESCR" "$DIR_SELECTED" $4
+                          f_select_dir_verify $1 "$DIR_DESCR" "$DIR_SELECTED" $4
                        done
                  #
                  # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
                  ERROR=0
-                 #
-                 # Set ANS = contents of TEMP_FILE2 which is a string of selected directory names delimited by spaces.
-                 if [ -e "$TEMP_FILE2" ] ; then
-                    ANS=$(cat $TEMP_FILE2)
-                 else                 
-                    ANS=""
-                    ERROR=1
-                 fi
               fi
            ;;
       esac
+      #
+      # Were there any directories selected?
+      # TEMP_FILE2 is only created by f_select_dir_verify when directories are selected.
+      if [ -e "$TEMP_FILE2" ] ; then
+         # Yes, directories were selected.
+         #
+         # Select only a single directory?
+         if [ "$4" = 1 ] ; then
+            # Yes, a single directory has been selected
+            ANS=$(cat $TEMP_FILE2)
+         else
+            # No, multiple directories were seleceted.
+            # Convert single-column list of file names contained in temp file
+            # to single string of file names delimited by space.
+            #
+            TEMP_FILE3=$TEMP_FILE2"_temp3.txt"
+            #
+            while read LINE
+                  do
+                     echo -n $LINE" " >> $TEMP_FILE3
+                  done < $TEMP_FILE2
+            #
+            ANS=$(cat $TEMP_FILE3)
+         fi
+      else
+         # No, directories were not selected.
+         ANS=""
+         ERROR=1
+      fi
       #
       if [ -e "$TEMP_FILE" ] ; then
          rm $TEMP_FILE
@@ -2181,6 +2205,10 @@ f_select_dir () {
       #
       if [ -e "$TEMP_FILE2" ] ; then
          rm $TEMP_FILE2
+      fi
+      #
+      if [ -e "$TEMP_FILE3" ] ; then
+         rm $TEMP_FILE3
       fi
       #
       if [ "$ERROR" -eq 1 ] ; then
@@ -2216,7 +2244,7 @@ f_select_dir_fzf () {
       #
       DIR_DESCR=$2
       DEFAULT_DIR=$3
-      DIR_OLD="*"
+      DIR_OLD=$3
       #
       # fzf EXIT STATUS
       #       0      Normal exit
@@ -2231,7 +2259,7 @@ f_select_dir_fzf () {
                #
                if [ "$ERROR" -eq 0 ] ; then
                   # Is directory selection done?
-                  if [ "$DIR_SELECTED"="$DIR_OLD" ] ; then
+                  if [ "$DIR_SELECTED" = "$DIR_OLD" ] ; then
                      # Yes, final directory selection is made.
                      # Exit while-loop.
                      ERROR=1
@@ -2250,7 +2278,7 @@ f_select_dir_fzf () {
          ERROR=0
          #
          # Verify each file selected $FILE_SELECTED and append to file TEMP_FILE2.
-         f_select_dir_verify $1 "$DIR_DESCR" "$DIR_SELECTED" "$4"
+         f_select_dir_verify $1 "$2" "$DIR_SELECTED" "$4"
          # Outputs TEMP_FILE2 which has a list of selected file names in a single column.
          # Outputs ERROR=1 if selecting only 1 directory (not multiple directories).
       fi
@@ -2289,59 +2317,104 @@ f_select_dir_verify () {
       DIR_DESCR=$2
       DIR_SELECTED=$3
       #
-      # Was any directory selected?
-      if [ $ERROR -eq 0 ] && [ -n $DIR_SELECTED ] ; then
-         f_yn_question $1 "Y" "Confirm $DIR_DESCR name" "$DIR_DESCR name:\n$DIR_SELECTED\n\nIs the $DIR_DESCR name correct?"
-         #
-         # Is the selected directory name correct?
-         if [ "$ANS" != "1" ] ; then
-            # Yes, $DIR_SELECTED name is correct.
-            #
-            # Does the directory exist?
-            if [ -d "$3" ] ; then
-               # Yes, $3 exists and is correct. Note: $3 includes "Directory Name".
-               # Add selected directory name to list of selected directories in TEMP_FILE2
-               echo $3 >> $TEMP_FILE2
-               #
-               # Only select a single directory?
-               if [ "$4" = 1 ] ; then
-                  # Yes, a single directory has already been selected
-                  # so exit loop by setting ERROR flag.
-                  ERROR=1
-               else
-                  # No, multiple directories can be selected, so continue.
-                  case $1 in
-                       dialog) 
+      case $1 in
+           dialog) 
+              # Was any directory selected?
+              if [ $ERROR -eq 0 ] && [ -n $DIR_SELECTED ] ; then
+                 f_yn_question $1 "Y" "Confirm $DIR_DESCR name" "$DIR_DESCR name:\n$DIR_SELECTED\n\nIs the $DIR_DESCR name correct?"
+                 #
+                 # Is the selected directory name correct?
+                 if [ "$ANS" != "1" ] ; then
+                    # Yes, $DIR_SELECTED name is correct.
+                    #
+                    # Does the directory exist?
+                    if [ -d "$DIR_SELECTED" ] ; then
+                       # Yes, $DIR_SELECTED exists and is correct.
+                       # Add selected directory name to list of selected directories in TEMP_FILE2
+                       # Delete any trailing forward slash.
+                       DIR_SELECTED=$(echo $DIR_SELECTED | sed 's|\/$||')
+                       #
+                       echo $DIR_SELECTED >> $TEMP_FILE2
+                       #
+                       # Only select a single directory?
+                       if [ "$4" = 1 ] ; then
+                          # Yes, a single directory has already been selected
+                          # so exit while-loop by setting ERROR=1.
+                          ERROR=1
+                       else
+                          # No, multiple directories can be selected, so continue.
                           f_message $1 "NOK" "Directory Entered" "Directory name accepted. Enter next directory name or press \"Done choosing\" button.\n\n$3" 2
-                       ;;
-                       whiptail | text)
-                          f_message $1 "NOK" "Directory Entered" "Directory name accepted. Enter next directory name or press \"Esc\" key to exit.\n\n$3" 2
-                       ;;
-                  esac
-               fi
-            else
-               # No, $3 does not exist. Create new directory?
-               f_yn_question $1 "Y" "Error Directory Missing" "Directory does not exist:\n\nDo you want to create a new empty directory?\n\n$3"
-               #
-               if [ "$ANS" -eq 0 ] ; then
-                  # Yes, create directory in user-space without using sudo permissions.
-                  mkdir -p $3
-                  ERROR=$?
-                  #
-                  if [ $ERROR -ne 0 ] ; then
-                     # Error creating directory.
-                     f_message $1 "OK" "Error Creating Directory" "Directory $2 cannot be created without sudo permissions.\n\nDirectory is missing:\n\n$3"
-                  else
-                     # Add selected directory to list of selected directories in TEMP_FILE2
-                     echo $3 >> $TEMP_FILE2
-                  fi
-               else
-                  # No, do not create directory.
-                  f_message $1 "OK" "Directory not created" "New directory not created.\n\n$3"
-               fi
-            fi
-         fi
-      fi   
+                       fi
+                    else
+                       # No, $3 does not exist. Create new directory?
+                       f_yn_question $1 "N" "Error Directory Missing" "Directory does not exist:\n\nDo you want to create a new empty directory?\n\n$3"
+                       #
+                       if [ "$ANS" -eq 0 ] ; then
+                          # Yes, create directory in user-space without using sudo permissions.
+                          mkdir -p $DIR_SELECTED
+                          ERROR=$?
+                          #
+                          if [ $ERROR -ne 0 ] ; then
+                             # Error creating directory.
+                             f_message $1 "OK" "Error Creating Directory" "Directory $2 cannot be created without sudo permissions.\n\nDirectory is missing:\n\n$3"
+                          else
+                             # Add selected directory to list of selected directories in TEMP_FILE2
+                             # Delete any trailing forward slash.
+                             DIR_SELECTED=$(echo $DIR_SELECTED | sed 's|\/$||')
+                             #
+                             echo $DIR_SELECTED >> $TEMP_FILE2
+                          fi
+                       else
+                          # No, do not create directory.
+                          f_message $1 "OK" "Directory not created" "New directory not created.\n\n$3"
+                       fi
+                    fi
+                 fi
+              fi   
+           ;;               
+           whiptail | text)
+              # Was any directory selected?
+              if [ $ERROR -eq 0 ] && [ -n $DIR_SELECTED ] ; then
+                 f_yn_question $1 "Y" "Confirm $DIR_DESCR name" "$DIR_DESCR name:\n$DIR_SELECTED\n\nIs the $DIR_DESCR name correct?"
+                 # Yes, a directory was selected.
+                 # Is the selected directory name correct?
+                 if [ "$ANS" != "1" ] ; then
+                    # Yes, $DIR_SELECTED is correct.
+                    #
+                    # Does the selected directory name exist?
+                    if [ -d "$DIR_SELECTED" ] ; then
+                       # Yes, add selected directory name to list of selected directories in TEMP_FILE2
+                       # Delete any trailing forward slash.
+                       DIR_SELECTED=$(echo $DIR_SELECTED | sed 's|\/$||')
+                       #
+                       echo $DIR_SELECTED >> $TEMP_FILE2
+                       #
+                       f_message $1 "NOK" "Directory Confirmed" "Directory name accepted.\n\n$DIR_SELECTED\n\n" 2
+                    else
+                       # No, $DIR_SELECTED does not exist.
+                       f_message $1 "OK" "Error Directory Missing" "Directory does not exist:\n\n$DIR_SELECTED"
+                    fi
+                    # No, the $DIR_SELECTED is not correct.
+                 fi
+                 # No, a directory was not selected.
+              fi
+              #
+              # Only select a single directory?
+              if [ "$4" = 1 ] ; then
+                 # Yes, a single directory has already been selected
+                 # so exit while-loop by setting ERROR=1.
+                 ERROR=1
+              else
+                 # No, multiple directories can be selected, so continue.
+                 f_yn_question $1 "Y" "Continue Selecting" "Select another directory?"
+                 #
+                 # If "No" then exit while-loop by setting ERROR=1.
+                 if [ "$ANS" = 1 ] ; then
+                    ERROR=1
+                 fi
+              fi
+           ;;
+      esac
       #
 }  # End of function f_select_dir_verify.
 #
@@ -2504,12 +2577,17 @@ f_select_file () {
                  #       2      Error
                  #       130    Interrupted with CTRL-C or ESC
                  #
+                 f_select_dir $1 "$2_Directory" "$3" 1
+                 DEFAULT_DIR=$ANS
+                 ERROR=0
+                 ANS=""
                  f_message $1 "OK" "$FILE_DESCR" "At the next prompt, select the desired file name\nby typing the first few letters of the name and using the up-down arrows.\n\nPress [ Enter ] key to select file name.\n\nPress [ Esc ] key or [ Ctrl+C ] to EXIT or CANCEL selection."
                  #
                  # Only a single file name to select?
                  if [ "$4" = 1 ] ; then
                     # Yes, select only 1 file name.
-                    ANS=$(fzf --query="^$DEFAULT_DIR" --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
+                    ANS=$(find "$DEFAULT_DIR" -type f | fzf --query="^" --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
+                    ERROR=$?
                     #
                     if [ $ERROR -eq 0 ] ; then
                        # Verify each file selected $FILE_SELECTED and append to file TEMP_FILE2.
@@ -2529,7 +2607,7 @@ f_select_file () {
                              #
                              # My work-around is to make the default directory the user's Home directory.
                              #
-                             ANS=$(fzf --query="^" --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
+                             ANS=$(find "$DEFAULT_DIR" -type f | fzf --query="^" --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
                              ERROR=$?
                              #
                              if [ $ERROR -eq 0 ] ; then
