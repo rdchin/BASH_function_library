@@ -2018,24 +2018,30 @@ f_select_dir () {
                        # Get the screen resolution or X-window size.
                        # Get rows (height).
                        YSCREEN=$(stty size | awk '{ print $1 }')
+                       Y=$YSCREEN
                        #
-                       if [ $YSCREEN -ge 28  ] ; then
+                       # Limit Dialog box to 240x72 characters across x lines.
+                       if [ $Y -gt 72 ] ; then
+                          Y=72
+                       fi
+                       #
+                       if [ $Y -ge 28  ] ; then
                           # Padding is 4, around Dialog --deselect box.
-                          let Y=$YSCREEN-4
-                       else
-                          # No padding around Dialog --deselect box.
-                          Y=$YSCREEN
+                          let Y=$Y-4
                        fi
                        #
                        # Get columns (width).
                        XSCREEN=$(stty size | awk '{ print $2 }')
+                       X=$XSCREEN
                        #
-                       if [ $XSCREEN -ge 84 ] ; then
+                       # Limit Dialog box to 240x72 characters across x lines.
+                       if [ $X -gt 240 ] ; then
+                          X=240
+                       fi
+                       #
+                       if [ $X -ge 84  ] ; then
                           # Padding is 4, around Dialog --deselect box.
-                          let X=$XSCREEN-4
-                       else
-                          # No padding around Dialog --deselect box.
-                          X=$XSCREEN
+                          let X=$X-4
                        fi
                        #
                        # The dialog --dselect --backtitle "Please choose $DIR_DESCR"
@@ -2079,15 +2085,7 @@ f_select_dir () {
                        # -1   if errors occur inside dialog (DIALOG_ERROR) or dialog exits because the ESC key (DIALOG_ESC) was pressed.
                        #
                        # Confirm directory selection.
-                       if [ "$ERROR" -eq 0 ] && [ -n "$DIR_SELECTED" ] ; then
-                          f_yn_question $1 "Y" "Confirm $DIR_DESCR name" "$DIR_DESCR name:\n$DIR_SELECTED\n\nIs the $DIR_DESCR name correct?"
-                          #
-                          # Is the selected directory name correct?
-                          if [ "$ANS" -eq 0 ] ; then
-                             # Yes, so double-check directory name and/or create it if it does not exist.
-                             f_select_dir2 $1 "$DIR_DESCR" "$DIR_SELECTED" $4
-                          fi
-                       fi
+                       f_select_dir_verify $1 "$DIR_DESCR" "$DIR_SELECTED" "$4"
                     done
               #
               # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
@@ -2101,128 +2099,78 @@ f_select_dir () {
                  ERROR=1
               fi
            ;;
-           whiptail)
-              # Is the length of $DIR_DESCR String longer than 28 characters?
-              # Truncate string length so Dialog f_select works on an 80x24 character VGA display.
-              #DIR_DESCR=${DIR_DESCR:0:28}
+           whiptail | text)
               #
-              # Initialize variables.
-              DIR_SELECTED=""
-              ANS=""
-              #
-              # Reset ERROR for while-loop to work.
-              ERROR=0
-              #
-              while [ "$ERROR" -eq 0 ]
-                    do
-                       # During the While-Loop, this allows for dynamic
-                       # resizing of the  Dialog directory selector if the
-                       # user re-sizes the X-window to see more files.
-                       #
-                       # Get the screen resolution or X-window size.
-                       # Get rows (height).
-                       YSCREEN=$(stty size | awk '{ print $1 }')
-                       #
-                       if [ $YSCREEN -ge 28  ] ; then
-                          # Padding is 4, around Dialog --deselect box.
-                          let Y=$YSCREEN-4
-                       else
-                          # No padding around Dialog --deselect box.
-                          Y=$YSCREEN
-                       fi
-                       #
-                       # Get columns (width).
-                       XSCREEN=$(stty size | awk '{ print $2 }')
-                       #
-                       if [ $XSCREEN -ge 84 ] ; then
-                          # Padding is 4, around Dialog --deselect box.
-                          let X=$XSCREEN-4
-                       else
-                          # No padding around Dialog --deselect box.
-                          X=$XSCREEN
-                       fi
-                       #
-                       # User-input via "inputbox" free-form directory name entry.
-                       # $1 --title "Enter $DIR_DESCR" --cancel-button "Exit" --inputbox "Enter $DIR_DESCR name" $X $Y $DEFAULT_DIR 2>$TEMP_FILE
-                       $1 --title "Enter $DIR_DESCR" --cancel-button "Done Choosing" --inputbox "Enter $DIR_DESCR name" $Y $X "$DEFAULT_DIR" 2>$TEMP_FILE
-                       ERROR=$?
-                       DIR_SELECTED=$(cat $TEMP_FILE)
-                       #
-                       # Note: whiptail --inputbox outputs answer to STDERR. So redirect STDERR to $TEMP_FILE.                       
-                       #
-                       # From man dialog page.
-                       # whiptail  interprets  arguments  starting with a dash "-" as being arguments.  To avoid this, and start
-                       # some text in, for example, a menubox item, with a dash, whiptail honours the getopt convention  of  ac‐
-                       # cepting  the  special  argument  "--"  which  means  that all following arguments with dashes are to be
-                       # treated verbatim and not parsed as options.
-                       #
-                       # Exit status is subject to being overridden by environment variables.
-                       # The default values and corresponding environment variables that can override them are:
-                       #
-                       # 0    if the YES or OK button is pressed.
-                       #
-                       # 1    if the No or Cancel button is pressed.
-                       #
-                       # 255   if errors occur inside whiptail or whiptail exits because the ESC key was pressed.
-                       #
-                       # Confirm directory selection.
-                       if [ "$ERROR" -eq 0 ] && [ -n "$DIR_SELECTED" ] ; then
-                          f_yn_question $1 "Y" "Confirm $DIR_DESCR name" "$DIR_DESCR name:\n$DIR_SELECTED\n\nIs the $DIR_DESCR name correct?"
-                          #
-                          # Is the selected directory name correct?
-                          if [ "$ANS" -eq 0 ] ; then
-                             # Yes, so double-check directory name and/or create it if it does not exist.
-                             f_select_dir2 $1 "$DIR_DESCR" "$DIR_SELECTED" $4
-                          fi
-                       fi                    
-                    done
-              #
-              # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
-              ERROR=0
-              #
-              # Set ANS = contents of TEMP_FILE2 which is a string of selected directory names delimited by spaces.
+              # Delete TEMP_FILE2.
               if [ -e "$TEMP_FILE2" ] ; then
-                 ANS=$(cat $TEMP_FILE2)
-              else                 
-                 ANS=""
-                 ERROR=1
+                 rm $TEMP_FILE2
               fi
-           ;;
-           text)
-              # User-input via text free-form directory name entry.
-              # Initialize variables.
-              DIR_SELECTED=""
-              ANS=""
               #
               # Reset ERROR for while-loop to work.
               ERROR=0
               #
-              while [ "$ERROR" -eq 0 ]
-                    do
-                       # The user-entered directory name is whatever is after $3 default parent directory.
-                       f_ask_question $1 "User-entered $DIR_DESCR name" "Enter $DIR_DESCR name(s):" "$DEFAULT_DIR"
-                       DIR_SELECTED="$ANS"
-                       # Confirm directory selection.
-                       if [ "$ERROR" -eq 0 ] && [ -n "$DIR_SELECTED" ] ; then
-                          f_yn_question $1 "Y" "Confirm $DIR_DESCR name" "$DIR_DESCR name:\n$DIR_SELECTED\n\nIs the $DIR_DESCR name correct?"
+              # Check if application "fzf" is installed.
+              type fzf >/dev/null 2>&1
+              ERROR=$?
+              #
+              # Is "fzf" installed?
+              if [ $ERROR -eq 0 ] ; then
+                 # Yes, "fzf" is installed.
+                 #
+                 # fzf EXIT STATUS
+                 #       0      Normal exit
+                 #       1      No match
+                 #       2      Error
+                 #       130    Interrupted with CTRL-C or ESC
+                 #
+                 f_message $1 "OK" "$DIR_DESCR" "At the next prompt, select the desired directory name\nby typing the first few letters of the name and using the up-down arrows.\n\nPress [ Enter ] key to select directory name.\n\nPress [ Esc ] key or [ Ctrl+C ] to EXIT or CANCEL selection."
+                 #
+                 while [ "$ERROR" -eq 0 ]
+                       do
+                          # Application "fzf" limitation is you can only select sub-directories
+                          # of the default directory during the While-loop.
+                          # You cannot select a different parent directory from the default directory.
+                          # i.e. if you select a file from "/home/user/Documents" 
+                          #      then you cannot select a file from "/home/user/Downloads",
+                          #      but you could select a file from "/home/user/Documents/unread"
                           #
-                          # Is the selected directory name correct?
-                          if [ "$ANS" -eq 0 ] ; then
-                             # Yes, so double-check directory name and/or create it if it does not exist.
-                             f_select_dir2 $1 "$DIR_DESCR" "$DIR_SELECTED" $4
-                          fi
-                       fi                    
-                    done
-              #
-              # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
-              ERROR=0
-              #
-              # Set ANS = contents of TEMP_FILE2 which is a string of selected directory names delimited by spaces.
-              if [ -e "$TEMP_FILE2" ] ; then
-                 ANS=$(cat $TEMP_FILE2)
-              else                 
+                          # My work-around is to make the default directory the user's Home directory.
+                          #
+                          f_select_dir_fzf
+                          #
+                       done
+              else
+                 # No, "fzf" is not installed.
+                 #
+                 # Only a single file name to select?
+                 # User-input via text free-form directory name entry.
+                 # Initialize variables.
+                 DIR_SELECTED=""
                  ANS=""
-                 ERROR=1
+                 #
+                 # Reset ERROR for while-loop to work.
+                 ERROR=0
+                 #
+                 while [ "$ERROR" -eq 0 ]
+                       do
+                          # The user-entered directory name is whatever is after $3 default parent directory.
+                          f_ask_question $1 "User-entered $DIR_DESCR name" "Enter $DIR_DESCR name(s):" "$DEFAULT_DIR"
+                          DIR_SELECTED="$ANS"
+                          #
+                          # Confirm directory selection.
+                          f_select_dir2 $1 "$DIR_DESCR" "$DIR_SELECTED" $4
+                       done
+                 #
+                 # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
+                 ERROR=0
+                 #
+                 # Set ANS = contents of TEMP_FILE2 which is a string of selected directory names delimited by spaces.
+                 if [ -e "$TEMP_FILE2" ] ; then
+                    ANS=$(cat $TEMP_FILE2)
+                 else                 
+                    ANS=""
+                    ERROR=1
+                 fi
               fi
            ;;
       esac
@@ -2245,7 +2193,72 @@ f_select_dir () {
 }  # End of function f_select_dir.
 #
 # +----------------------------------------+
-# |          Function f_select_dir2        |
+# |        Function f_select_dir_fzf       |
+# +----------------------------------------+
+#
+#     Rev: 2022-04-29
+#  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
+#          $2 - String "[Description] Directory".
+#                  (String must either begin and end with double-quotes
+#                  or must have underscores substituting for spaces).
+#                  !!! String cannot be longer than 28 characters !!!
+#          $3 - Default parent directory.
+#          THIS_DIR.
+#    Uses: None.
+# Outputs: TEMP_FILE2 (List of selected directories delimited by spaces)
+#          ERROR.
+#
+# Summary: Used in f_select_dir while-loop. Confirm a directory exists or if not create it.
+#
+# Dependencies: f_yn_question, f_message.
+#
+f_select_dir_fzf () {
+      #
+      DIR_DESCR=$2
+      DEFAULT_DIR=$3
+      DIR_OLD="*"
+      #
+      # fzf EXIT STATUS
+      #       0      Normal exit
+      #       1      No match
+      #       2      Error
+      #       130    Interrupted with CTRL-C or ESC
+      #
+      while [ "$ERROR" -eq 0 ]
+            do
+               DIR_SELECTED=$(find $DIR_OLD -maxdepth 1 -type d 2>/dev/null | fzf --query="^$DEFAULT_DIR" --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
+               ERROR=$?
+               #
+               if [ "$ERROR" -eq 0 ] ; then
+                  # Is directory selection done?
+                  if [ "$DIR_SELECTED"="$DIR_OLD" ] ; then
+                     # Yes, final directory selection is made.
+                     # Exit while-loop.
+                     ERROR=1
+                  else
+                     DIR_OLD=$DIR_SELECTED
+                     DEFAULT_DIR=$DIR_SELECTED
+                  fi
+               fi
+            done
+      #
+      # If user pressed [Ctrl-C] or [Esc] key,
+      # then ERROR=130 and DIR_SELECTED="".
+      #
+      if [ -n $DIR_SELECTED ] ; then
+         # Reset ERROR.
+         ERROR=0
+         #
+         # Verify each file selected $FILE_SELECTED and append to file TEMP_FILE2.
+         f_select_dir_verify $1 "$DIR_DESCR" "$DIR_SELECTED" "$4"
+         # Outputs TEMP_FILE2 which has a list of selected file names in a single column.
+         # Outputs ERROR=1 if selecting only 1 directory (not multiple directories).
+      fi
+      #
+}  # End of function f_select_dir_fzf.
+#
+# +----------------------------------------+
+# |      Function f_select_dir_verify      |
 # +----------------------------------------+
 #
 #     Rev: 2022-04-29
@@ -2259,55 +2272,78 @@ f_select_dir () {
 #                            0 or null=Select multiple directories.
 #          THIS_DIR.
 #    Uses: None.
-# Outputs: TEMP_FILE2 (List of selected directories delimited by spaces)
+# Outputs: TEMP_FILE2 - Temporary file contains a list of file names.
+#                              Example: cat $4
+#                                       DIR1/FILE1
+#                                       DIR2/FILE2
+#                                       DIR3/FILE3
 #          ERROR.
 #
 # Summary: Used in f_select_dir while-loop. Confirm a directory exists or if not create it.
 #
 # Dependencies: f_yn_question, f_message.
 #
-f_select_dir2 () {
+f_select_dir_verify () {
       #
-      # Confirm directory exists.
-      if [ -d "$3" ] ; then
-         # Yes, $3 exists and is correct. Note: $3 includes "Directory Name".
-         # Add selected directory name to list of selected directories in TEMP_FILE2
-         echo $3 >> $TEMP_FILE2
+      # Initialize variables.
+      DIR_DESCR=$2
+      DIR_SELECTED=$3
+      #
+      # Was any directory selected?
+      if [ $ERROR -eq 0 ] && [ -n $DIR_SELECTED ] ; then
+         f_yn_question $1 "Y" "Confirm $DIR_DESCR name" "$DIR_DESCR name:\n$DIR_SELECTED\n\nIs the $DIR_DESCR name correct?"
          #
-         # Only select a single directory?
-         if [ "$4" -eq 1 ] ; then
-            # Yes, a single directory has already been selected
-            # so exit loop by setting ERROR flag.
-            ERROR=1
-         else
-            # No, multiple directories can be selected, so continue.
-            f_message $1 "OK" "Directory Entered" "Directory name accepted. Enter next directory name or press \"Done Choosing\" button.\n\n$3" 2
-         fi
-      else
-         # No, $3 does not exist. Create new directory?
-         if [ "$ERROR" -eq 0 ] && [ -n "$DIR_SELECTED" ] ; then
-            f_yn_question $1 "Y" "Error Directory Missing" "Directory does not exist:\n\nDo you want to create a new empty directory?\n\n$3"
+         # Is the selected directory name correct?
+         if [ "$ANS" != "1" ] ; then
+            # Yes, $DIR_SELECTED name is correct.
             #
-            if [ "$ANS" -eq 0 ] ; then
-               # Yes, create directory in user-space without using sudo permissions.
-               mkdir -p $3
-               ERROR=$?
+            # Does the directory exist?
+            if [ -d "$3" ] ; then
+               # Yes, $3 exists and is correct. Note: $3 includes "Directory Name".
+               # Add selected directory name to list of selected directories in TEMP_FILE2
+               echo $3 >> $TEMP_FILE2
                #
-               if [ $ERROR -ne 0 ] ; then
-                  # Error creating directory.
-                  f_message $1 "OK" "Error Creating Directory" "Directory $2 cannot be created without sudo permissions.\n\nDirectory is missing:\n\n$3"
+               # Only select a single directory?
+               if [ "$4" = 1 ] ; then
+                  # Yes, a single directory has already been selected
+                  # so exit loop by setting ERROR flag.
+                  ERROR=1
                else
-                  # Add selected directory to list of selected directories in TEMP_FILE2
-                  echo $3 >> $TEMP_FILE2
+                  # No, multiple directories can be selected, so continue.
+                  case $1 in
+                       dialog) 
+                          f_message $1 "NOK" "Directory Entered" "Directory name accepted. Enter next directory name or press \"Done choosing\" button.\n\n$3" 2
+                       ;;
+                       whiptail | text)
+                          f_message $1 "NOK" "Directory Entered" "Directory name accepted. Enter next directory name or press \"Esc\" key to exit.\n\n$3" 2
+                       ;;
+                  esac
                fi
             else
-               # No, do not create directory.
-               f_message $1 "OK" "Directory not created" "New directory not created.\n\n$3"
+               # No, $3 does not exist. Create new directory?
+               f_yn_question $1 "Y" "Error Directory Missing" "Directory does not exist:\n\nDo you want to create a new empty directory?\n\n$3"
+               #
+               if [ "$ANS" -eq 0 ] ; then
+                  # Yes, create directory in user-space without using sudo permissions.
+                  mkdir -p $3
+                  ERROR=$?
+                  #
+                  if [ $ERROR -ne 0 ] ; then
+                     # Error creating directory.
+                     f_message $1 "OK" "Error Creating Directory" "Directory $2 cannot be created without sudo permissions.\n\nDirectory is missing:\n\n$3"
+                  else
+                     # Add selected directory to list of selected directories in TEMP_FILE2
+                     echo $3 >> $TEMP_FILE2
+                  fi
+               else
+                  # No, do not create directory.
+                  f_message $1 "OK" "Directory not created" "New directory not created.\n\n$3"
+               fi
             fi
          fi
-      fi
+      fi   
       #
-}  # End of function f_select_dir2.
+}  # End of function f_select_dir_verify.
 #
 # +----------------------------------------+
 # |         Function f_select_file         |
@@ -2370,24 +2406,30 @@ f_select_file () {
                        #
                        # Get rows (height).
                        YSCREEN=$(stty size | awk '{ print $1 }')
+                       Y=$YSCREEN
                        #
-                       if [ $YSCREEN -ge 28  ] ; then
-                          # Padding is 4, around Dialog --fdeselect box.
-                          let Y=$YSCREEN-4
-                       else
-                          # No padding around Dialog --feselect box.
-                          Y=$YSCREEN
+                       # Limit Dialog box to 240x72 characters across x lines.
+                       if [ $Y -gt 72 ] ; then
+                          Y=72
+                       fi
+                       #
+                       if [ $Y -ge 28  ] ; then
+                          # Padding is 4, around Dialog --deselect box.
+                          let Y=$Y-4
                        fi
                        #
                        # Get columns (width).
                        XSCREEN=$(stty size | awk '{ print $2 }')
+                       X=$XSCREEN
                        #
-                       if [ $XSCREEN -ge 84 ] ; then
-                          # Padding is 4, around Dialog --feselect box.
-                          let X=$XSCREEN-4
-                       else
-                          # No padding around Dialog --feselect box.
-                          X=$XSCREEN
+                       # Limit Dialog box to 240x72 characters across x lines.
+                       if [ $X -gt 240 ] ; then
+                          X=240
+                       fi
+                       #
+                       if [ $X -ge 84  ] ; then
+                          # Padding is 4, around Dialog --deselect box.
+                          let X=$X-4
                        fi
                        #
                        # The dialog --fselect --backtitle "Please choose $FILE_DESCR"
@@ -2532,10 +2574,6 @@ f_select_file () {
            ;;
       esac
       #
-      if [ "$ERROR" -eq 1 ] ; then
-         return 1  # Return to Main Menu.
-      fi
-      #
 }  # End of function f_select_file.
 #
 # +----------------------------------------+
@@ -2602,10 +2640,7 @@ f_select_file_verify () {
                   dialog) 
                      f_message $1 "NOK" "File Entered" "File name accepted. Enter next file name or press \"Done choosing\" button.\n\n$FILE_SELECTED" 2
                   ;;
-                  whiptail)
-                     f_message $1 "NOK" "File Entered" "File name accepted. Enter next file name or press \"Exit\" button.\n\n$FILE_SELECTED" 2
-                  ;;
-                  text)
+                  whiptail | text)
                      f_message $1 "NOK" "File Entered" "File name accepted. Enter next file name or press \"Esc\" key to exit.\n\n$FILE_SELECTED" 2
                   ;;
                   esac
@@ -2663,7 +2698,11 @@ f_select_file_output () {
       # Outputs: $5 has list of files delimited by spaces.
       #         (List of selected files: "DIR1/FILE1 DIR2/FILE2 DIR3/FILE3...").
       #
-      # If "Cancel" button was pressed during Dialog f_select, then $5 was never created.
+      # If "Cancel" button was pressed during Dialog f_select,
+      # then temporary file $4 was never created.
+      # $4 may be null or $4 may be $5 (if $5 has a string "1" or "0").
+      # Test if $4 is an existing temporary file name.
+      #
       # Was "Cancel" button pressed by user during f_select?
       if [ -f $4 ] ; then
          # No, "Cancel" button was not pressed, continue with selected file(s)
@@ -2673,7 +2712,7 @@ f_select_file_output () {
             # Yes, multiple files are selected so display list of files
             # followed by a Go/NoGo question.
             #
-            # $5 still contains the list of selected files which
+            # $4 still contains the list of selected files which
             # was the result of the Dialog fselect command.
             # So don't change contents.
             #
