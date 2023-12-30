@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2023-12-28 18:42"
+VERSION="2023-12-29 22:01"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -55,6 +55,19 @@ VERSION="2023-12-28 18:42"
 #&
 #&    You should have received a copy of the GNU General Public License
 #&    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#&
+#&    --------------------------------------------------------------------
+#&
+#&    "fzf" is under the The MIT License (MIT) and Copyright (c) 2013-2023
+#&    by Junegunn Choi.
+#&     
+#&    "fzf" is an adaptable command-line fuzzy finder with an interactive 
+#&    interface. 
+#&
+#&    "fzf" is used by the functions, f_select_dir_fzf and f_select_file.
+#&
+#&    See Junegunn Choi's Github website https://github.com/junegunn/fzf
+#&    for more information.
 #
 # +----------------------------------------+
 # |           Code Change History          |
@@ -64,10 +77,10 @@ VERSION="2023-12-28 18:42"
 ##
 ## (After each edit made, please update Code History and VERSION.)
 ##
-## 2023-12-28 *f_select_dir_verify force a standard so that all dir names
+## 2023-12-29 *f_select_dir_verify force a standard so that all dir names
 ##             end in a trailing "/" or no "/")
-##            *f_select_file limited scope by using f_select_dir to choose
-##             the directory before searching for the file.
+##            *f_select_file limited scope by using a directory argument
+##             specifying the directory to start searching for the file.
 ##
 ## 2023-12-25 *f_select_file for "whiptail" and "text" UI uses application
 ##             "fzf" which is licensed under the "MIT License".
@@ -1968,7 +1981,7 @@ f_web_browser () {
 # |          Function f_select_dir         |
 # +----------------------------------------+
 #
-#     Rev: 2022-04-29
+#     Rev: 2023-12-29
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - String "[Description] Directory".
 #                  (String must either begin and end with double-quotes
@@ -2091,7 +2104,7 @@ f_select_dir () {
                        # -1   if errors occur inside dialog (DIALOG_ERROR) or dialog exits because the ESC key (DIALOG_ESC) was pressed.
                        #
                        # Confirm directory selection.
-                       f_select_dir_verify $1 "$DIR_DESCR" "$DIR_SELECTED" "$4"
+                       f_select_dir_verify $1 "$DIR_DESCR" "$DIR_SELECTED" "$3" "$4"
                     done
               #
               # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
@@ -2136,10 +2149,8 @@ f_select_dir () {
                           #      then you cannot select a file from "/home/user/Downloads",
                           #      but you could select a file from "/home/user/Documents/unread"
                           #
-                          # My work-around is to make the default directory the user's Home directory.
-                          #
                           # Use $3 instead of $DEFAULT_DIRECTORY as the latter may change.
-                          f_select_dir_fzf $1 "$DIR_DESCR" "$3" $4
+                          f_select_dir_fzf $1 "$DIR_DESCR" "$3" "$4"
                           #
                        done
               else
@@ -2224,13 +2235,15 @@ f_select_dir () {
 # |        Function f_select_dir_fzf       |
 # +----------------------------------------+
 #
-#     Rev: 2022-04-29
+#     Rev: 2023-12-29
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - String "[Description] Directory".
 #                  (String must either begin and end with double-quotes
 #                  or must have underscores substituting for spaces).
 #                  !!! String cannot be longer than 28 characters !!!
-#          $3 - Default parent directory.
+#          $3 - Original Default directory.
+#          $4 - [Optional] 1/0 1=Select only one directory
+#                            0 or null=Select multiple directories.
 #          THIS_DIR.
 #    Uses: None.
 # Outputs: TEMP_FILE2 (List of selected directories delimited by spaces)
@@ -2242,8 +2255,10 @@ f_select_dir () {
 #
 f_select_dir_fzf () {
       #
+      # Initialize variables.
       DIR_DESCR=$2
       DEFAULT_DIR=$3
+      # Set DIR_OLD to DEFAULT_DIR so that fzf starts at DEFAULT_DIR.
       DIR_OLD=$3
       #
       # fzf EXIT STATUS
@@ -2254,6 +2269,9 @@ f_select_dir_fzf () {
       #
       while [ "$ERROR" -eq 0 ]
             do
+               # The DEFAULT_DIR will change to the sub-directory selected during each loop in the while-loop.
+               # If the user aborts the selection or wants to select another sub-directory, 
+               # then DEFAULT_DIR is set to $3 by f_select_dir_verify to start over from the original directory.
                DIR_SELECTED=$(find $DIR_OLD -maxdepth 1 -type d 2>/dev/null | fzf --query="^$DEFAULT_DIR" --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
                ERROR=$?
                #
@@ -2261,8 +2279,12 @@ f_select_dir_fzf () {
                   # Is directory selection done?
                   if [ "$DIR_SELECTED" = "$DIR_OLD" ] ; then
                      # Yes, final directory selection is made.
-                     # Exit while-loop.
-                     ERROR=1
+                     if [ -n $DIR_SELECTED ] ; then
+                        # Verify each file selected $FILE_SELECTED and append to file TEMP_FILE2.
+                        f_select_dir_verify $1 "$2" "$DIR_SELECTED" $3 $4
+                        # Outputs TEMP_FILE2 which has a list of selected file names in a single column.
+                        # Outputs ERROR=1 if selecting only 1 directory (not multiple directories).
+                     fi
                   else
                      DIR_OLD=$DIR_SELECTED
                      DEFAULT_DIR=$DIR_SELECTED
@@ -2273,38 +2295,29 @@ f_select_dir_fzf () {
       # If user pressed [Ctrl-C] or [Esc] key,
       # then ERROR=130 and DIR_SELECTED="".
       #
-      if [ -n $DIR_SELECTED ] ; then
-         # Reset ERROR.
-         ERROR=0
-         #
-         # Verify each file selected $FILE_SELECTED and append to file TEMP_FILE2.
-         f_select_dir_verify $1 "$2" "$DIR_SELECTED" "$4"
-         # Outputs TEMP_FILE2 which has a list of selected file names in a single column.
-         # Outputs ERROR=1 if selecting only 1 directory (not multiple directories).
-      fi
-      #
 }  # End of function f_select_dir_fzf.
 #
 # +----------------------------------------+
 # |      Function f_select_dir_verify      |
 # +----------------------------------------+
 #
-#     Rev: 2022-04-29
+#     Rev: 2023-12-29
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - String "[Description] Directory".
 #                  (String must either begin and end with double-quotes
 #                  or must have underscores substituting for spaces).
 #                  !!! String cannot be longer than 28 characters !!!
 #          $3 - Selected directory.
-#          $4 - [Optional] 1/0 1=Select only one directory
+#          $4 - Original Default directory.
+#          $5 - [Optional] 1/0 1=Select only one directory
 #                            0 or null=Select multiple directories.
 #          THIS_DIR.
 #    Uses: None.
 # Outputs: TEMP_FILE2 - Temporary file contains a list of file names.
-#                              Example: cat $4
-#                                       DIR1/FILE1
-#                                       DIR2/FILE2
-#                                       DIR3/FILE3
+#                       Example: cat $TEMP_FILE2
+#                                DIR1/FILE1
+#                                DIR2/FILE2
+#                                DIR3/FILE3
 #          ERROR.
 #
 # Summary: Used in f_select_dir while-loop. Confirm a directory exists or if not create it.
@@ -2337,7 +2350,7 @@ f_select_dir_verify () {
                        echo $DIR_SELECTED >> $TEMP_FILE2
                        #
                        # Only select a single directory?
-                       if [ "$4" = 1 ] ; then
+                       if [ "$5" = 1 ] ; then
                           # Yes, a single directory has already been selected
                           # so exit while-loop by setting ERROR=1.
                           ERROR=1
@@ -2370,7 +2383,10 @@ f_select_dir_verify () {
                        fi
                     fi
                  fi
-              fi   
+                 # No, the $DIR_SELECTED is not correct.
+              fi
+              # No, a directory was not selected.
+   
            ;;               
            whiptail | text)
               # Was any directory selected?
@@ -2394,13 +2410,17 @@ f_select_dir_verify () {
                        # No, $DIR_SELECTED does not exist.
                        f_message $1 "OK" "Error Directory Missing" "Directory does not exist:\n\n$DIR_SELECTED"
                     fi
+                 else
                     # No, the $DIR_SELECTED is not correct.
+                    # Force "fzf" to start over using the original default directory as the parent directory.
+                    DIR_OLD=$4
+                    DEFAULT_DIR=$4
                  fi
                  # No, a directory was not selected.
               fi
               #
               # Only select a single directory?
-              if [ "$4" = 1 ] ; then
+              if [ "$5" = 1 ] ; then
                  # Yes, a single directory has already been selected
                  # so exit while-loop by setting ERROR=1.
                  ERROR=1
@@ -2408,9 +2428,15 @@ f_select_dir_verify () {
                  # No, multiple directories can be selected, so continue.
                  f_yn_question $1 "Y" "Continue Selecting" "Select another directory?"
                  #
-                 # If "No" then exit while-loop by setting ERROR=1.
                  if [ "$ANS" = 1 ] ; then
+                    # No, done selecting directories.
+                    # Force exit out of while-loop.
                     ERROR=1
+                 else
+                    # Yes, select another directory.
+                    # Force "fzf" to start over using the original default directory as the parent directory.
+                    DIR_OLD=$4
+                    DEFAULT_DIR=$4
                  fi
               fi
            ;;
@@ -2422,7 +2448,7 @@ f_select_dir_verify () {
 # |         Function f_select_file         |
 # +----------------------------------------+
 #
-#     Rev: 2022-06-21
+#     Rev: 2023-12-29
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - String "[Description] File(s)".
 #                  (String must either begin and end with double-quotes
@@ -2562,6 +2588,7 @@ f_select_file () {
               #
               # Reset ERROR for while-loop to work.
               ERROR=0
+              ANS=""
               #
               # Check if application "fzf" is installed.
               type fzf >/dev/null 2>&1
@@ -2577,16 +2604,12 @@ f_select_file () {
                  #       2      Error
                  #       130    Interrupted with CTRL-C or ESC
                  #
-                 f_select_dir $1 "$2_Directory" "$3" 1
-                 DEFAULT_DIR=$ANS
-                 ERROR=0
-                 ANS=""
                  f_message $1 "OK" "$FILE_DESCR" "At the next prompt, select the desired file name\nby typing the first few letters of the name and using the up-down arrows.\n\nPress [ Enter ] key to select file name.\n\nPress [ Esc ] key or [ Ctrl+C ] to EXIT or CANCEL selection."
                  #
                  # Only a single file name to select?
                  if [ "$4" = 1 ] ; then
                     # Yes, select only 1 file name.
-                    ANS=$(find "$DEFAULT_DIR" -type f | fzf --query="^" --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
+                    ANS=$(find "$DEFAULT_DIR" -type f | sort | fzf --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
                     ERROR=$?
                     #
                     if [ $ERROR -eq 0 ] ; then
@@ -2605,9 +2628,7 @@ f_select_file () {
                              #      then you cannot select a file from "/home/user/Downloads",
                              #      but you could select a file from "/home/user/Documents/unread"
                              #
-                             # My work-around is to make the default directory the user's Home directory.
-                             #
-                             ANS=$(find "$DEFAULT_DIR" -type f | fzf --query="^" --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
+                             ANS=$(find "$DEFAULT_DIR" -type f | sort | fzf --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
                              ERROR=$?
                              #
                              if [ $ERROR -eq 0 ] ; then
@@ -2658,7 +2679,7 @@ f_select_file () {
 # |      Function f_select_file_verify     |
 # +----------------------------------------+
 #
-#     Rev: 2023-12-20
+#     Rev: 2023-12-29
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - String File Description
 #                  (String must either begin and end with double-quotes
@@ -2701,9 +2722,6 @@ f_select_file_verify () {
             if [ -f "$FILE_SELECTED" ] ; then
                # Yes, file $FILE_SELECTED exists.
                #
-               # Set DEFAULT_DIR to newly selected base directory.
-               DEFAULT_DIR=$(dirname $FILE_SELECTED)
-               #
                # Add selected file to list of selected files in TEMP_FILE2
                echo $FILE_SELECTED >> $TEMP_FILE2
                #
@@ -2729,7 +2747,10 @@ f_select_file_verify () {
                #
                if [ $ANS -eq 0 ] ; then
                   # Create new sub-directory.
-                  mkdir -p $DEFAULT_DIR
+                  # Set NEW_DIR to newly selected base directory.
+                  NEW_DIR=$(dirname $FILE_SELECTED)
+                  #
+                  mkdir -p $NEW_DIR
                   #
                   # Create new file.
                   touch $FILE_SELECTED
@@ -2747,7 +2768,7 @@ f_select_file_verify () {
 # |      Function f_select_file_output     |
 # +----------------------------------------+
 #
-#     Rev: 2023-12-20
+#     Rev: 2023-12-29
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - String File Description
 #                  (String must either begin and end with double-quotes
