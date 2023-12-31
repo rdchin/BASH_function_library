@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2023-12-29 22:01"
+VERSION="2023-12-30 23:13"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -2463,6 +2463,9 @@ f_select_dir_verify () {
 #          ERROR.
 #
 # Summary: Prompt user-entered file name.
+#          Dialog UI uses "dialog --fselect".
+#          Whiptail/Text UI uses "find" piped to "fzf" to find/select all regular files excluding hidden files.
+#                           with commented out command to find/select all regular files including hidden files.
 #
 # Dependencies: f_yn_question, f_message.
 #
@@ -2609,7 +2612,12 @@ f_select_file () {
                  # Only a single file name to select?
                  if [ "$4" = 1 ] ; then
                     # Yes, select only 1 file name.
-                    ANS=$(find "$DEFAULT_DIR" -type f | sort | fzf --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
+                    #
+                    # Find and select hidden and regular files.
+                    # ANS=$(find "$DEFAULT_DIR" -type f | sort | fzf --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
+                    #
+                    # Find and select regular files that are not hidden.
+                    ANS=$(find "$DEFAULT_DIR" -not -path '*/.*' | sort | fzf --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
                     ERROR=$?
                     #
                     if [ $ERROR -eq 0 ] ; then
@@ -2628,7 +2636,11 @@ f_select_file () {
                              #      then you cannot select a file from "/home/user/Downloads",
                              #      but you could select a file from "/home/user/Documents/unread"
                              #
-                             ANS=$(find "$DEFAULT_DIR" -type f | sort | fzf --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
+                             # Find and select hidden and regular files.
+                             # ANS=$(find "$DEFAULT_DIR" -type f | sort | fzf --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
+                             #
+                             # Find and select regular files that are not hidden.
+                             ANS=$(find "$DEFAULT_DIR" -not -path '*/.*' -type f | sort | fzf --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
                              ERROR=$?
                              #
                              if [ $ERROR -eq 0 ] ; then
