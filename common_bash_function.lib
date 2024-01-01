@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2023-12-30 23:13"
+VERSION="2023-12-31 21:16"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -76,6 +76,9 @@ VERSION="2023-12-30 23:13"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2023-12-31 *f_show_mount_points include $HOSTNAME in display.
+##            *f_create_a_menu improved documentation.
 ##
 ## 2023-12-29 *f_select_dir_verify force a standard so that all dir names
 ##             end in a trailing "/" or no "/")
@@ -1489,8 +1492,7 @@ f_show_mount_points () {
       # Blank the screen.
       clear
       #
-      date >$TEMP_FILE
-      echo >>$TEMP_FILE
+      echo "Local PC is "$HOSTNAME"." >$TEMP_FILE
       echo "------------------------------------------------------------------" >>$TEMP_FILE
       echo "Display status of any shared directories from remote file servers." >>$TEMP_FILE
       echo "------------------------------------------------------------------" >>$TEMP_FILE
@@ -4907,7 +4909,32 @@ f_menu_sub_TEMPLATE () {
 #    Uses: None.
 # Outputs: None.
 #
-# Summary: Display sub-menu. This may replace f_menu_sub_TEMPLATE.
+# Summary: Display menus using menu data from a single file which includes all the menu items for multiple menus.
+#          So rather than having a separate file for the data of each menu, this allows you to have data for multiple menus in a single file.
+#          This may replace f_menu_sub_TEMPLATE.
+#
+#          For example: the file Example_Menu_listngs.lib contains the 
+#                       data for "Main Menu" and "Level 2 Menu".
+#
+#           Listing of Example_Menu_Listings.lib
+#           ------------------------------------
+#!          Start Listing Main Menu
+#!               (Required header, do not delete).
+#
+#           Various menu items  go here.
+#
+#! End Listing Main Menu (Required line, do not delete).
+#
+#!          Start Listing Level 2 Menu
+#!               (Required header, do not delete).
+#
+#           Various menu items  go here.
+#
+#! End Listing Level 2 Menu (Required line, do not delete).
+#
+#          To build the "Main Menu", $3="Main Menu" and $3 must be the exact same string
+#          as used in the file Example_Menu_listings.lib. Notice that file has both the
+#          comment heading line and comment following line begining with "#!".
 #
 # Dependencies: f_menu_make, f_menu_arrays, f_create_show_menu.
 #
