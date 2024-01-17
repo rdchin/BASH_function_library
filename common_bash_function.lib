@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# ©2023 Copyright 2024 Robert D. Chin
+# ©2024 Copyright 2024 Robert D. Chin
 # Email: RDevChin@Gmail.com
 #
 # Usage: source common_bash_function.lib
@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2024-01-13 21:38"
+VERSION="2024-01-16 20:00"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -76,6 +76,10 @@ VERSION="2024-01-13 21:38"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2024-01-16 *f_check_version_TEMPLATE, f_version_compare added
+##             "Silent Mode" parameter and only ask question to update
+##             if an update is needed.
 ##
 ## 2024-01-13 *f_menu_main_TEMPLATE improved comments, documentation.
 ##            *f_menu_main_TEMPLATE_2, f_menu_main_all_plus_TEMPLATE added.
@@ -565,9 +569,10 @@ f_display_common_TEMPLATE () {
 # |        Function f_check_version_TEMPLATE        |
 # +----------------------------------------+
 #
-#     Rev: 2022-05-19
+#     Rev: 2024-01-16
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - [OPTIONAL] File name to compare.
+#          $3 - [OPTIONAL] 1=Silent mode.
 #          FILE_TO_COMPARE.
 #    Uses: SERVER_DIR, MP_DIR, LOCAL_REPO_DIR, $FILE_TO_COMPARE, FILE_LIST,
 #          VERSION, TEMP_FILE, ERROR.
@@ -658,7 +663,7 @@ f_check_version_TEMPLATE () {
       #echo "[ FILE NAME3 GOES HERE ]" >> $FILE_LIST  # <<<--- INSERT ACTUAL FILE NAME HERE.
       #echo "[ FILE NAME4 GOES HERE ]" >> $FILE_LIST  # <<<--- INSERT ACTUAL FILE NAME HERE.
       #
-      f_version_compare $1 $SERVER_DIR $MP_DIR $LOCAL_REPO_DIR $FILE_TO_COMPARE "$VERSION" $FILE_LIST
+      f_version_compare $1 "$SERVER_DIR" "$MP_DIR" "$LOCAL_REPO_DIR" "$FILE_TO_COMPARE" "$VERSION" "$FILE_LIST" $3
       #
       if [ -r  $FILE_LIST ] ; then
          rm  $FILE_LIST
@@ -672,7 +677,7 @@ f_check_version_TEMPLATE () {
 # |       Function f_version_compare       |
 # +----------------------------------------+
 #
-#     Rev: 2022-05-19
+#     Rev: 2024-01-16
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - Samba File server Directory
 #          $3 - Local Mount Point (Directory)
@@ -680,6 +685,8 @@ f_check_version_TEMPLATE () {
 #          $5 - File server Target File name.
 #          $6 - Version of Local file. String.
 #          $7 - Temporary file name with list of files to be upgraded.
+#          $8 - 1=Silent mode without displaying questions or status.
+#               Display error messages only.
 #    Uses: LINE, VER, VER_MSG, VERSION_RELEASE, ERROR2.
 # Outputs: ERROR, ANS.
 #
@@ -728,21 +735,27 @@ f_version_compare () {
                VER_REPO=$(echo $VER_REPO | sed 's/VERSION=//' | sed 's/\"//g')
                #
                VER_MSG=$7"_MSG.txt"
-               echo "Replace Files on this PC?" > $VER_MSG
-               echo >> $VER_MSG
-
-               echo "***Original Software Version on this PC***" >> $VER_MSG
-               echo "$VER_LOCAL" >> $VER_MSG
-               echo >> $VER_MSG
-               echo "***Replace with***" >> $VER_MSG
-               echo "$VER_REPO" >> $VER_MSG
-               echo >> $VER_MSG
-               echo "Replace files below:" >> $VER_MSG
-               cat $7 >> $VER_MSG
-               echo >> $VER_MSG
-               echo "with files from Local Repository at" >> $VER_MSG
-               echo "$4" >> $VER_MSG
-               f_message $1 "OK" "List of Files to be Copied" $VER_MSG
+               #
+               # f_message $1 "OK" "Diagnostic Line common_bash_function.lib 737" "Silent Mode=$8 VER_LOCAL=$VER_LOCAL VER_REPO=$VER_REPO"  # Diagnostic line.
+               #
+               # Is "Silent Mode" deactivated and update needed?
+               if [ -z "$8" ] && [ "$VER_LOCAL" != "$VER_REPO" ]; then
+                  # Yes, display message.
+                  echo "Replace Files on this PC?" > $VER_MSG
+                  echo >> $VER_MSG
+                  echo "***Original Software Version on this PC***" >> $VER_MSG
+                  echo "$VER_LOCAL" >> $VER_MSG
+                  echo >> $VER_MSG
+                  echo "***Replace with***" >> $VER_MSG
+                  echo "$VER_REPO" >> $VER_MSG
+                  echo >> $VER_MSG
+                  echo "Replace files below:" >> $VER_MSG
+                  cat $7 >> $VER_MSG
+                  echo >> $VER_MSG
+                  echo "with files from Local Repository at" >> $VER_MSG
+                  echo "$4" >> $VER_MSG
+                  f_message $1 "OK" "List of Files to be Copied" $VER_MSG
+               fi
                #
                # Delete temporary file.
                if [ -e $VER_MSG ] ; then
@@ -758,8 +771,16 @@ f_version_compare () {
             f_message $1 "OK" "Error Mounting Local Repository Directory" "Failed to mount Local Repository Directory \"$4\". Cannot compare script versions."
          fi
          #
-         if [ $ERROR -eq 0 ] ; then
-            f_yn_question $1 "N" "Copy from Repository?" "Original software version on this PC:\n   $VER_LOCAL\n\nReplace with Repository software version:\n   $VER_REPO\n\nand OVERWRITE original files on this PC?"
+         # Is an update needed?
+         if [ $ERROR -eq 0 ] && [ "$VER_LOCAL" != "$VER_REPO" ]; then
+             Is "Silent Mode" activated?
+            if [ -z "$8" ] ; then
+               # "Silent Mode" inactive, display question.
+               f_yn_question $1 "N" "Copy from Repository?" "Original software version on this PC:\n   $VER_LOCAL\n\nReplace with Repository software version:\n   $VER_REPO\n\nand OVERWRITE original files on this PC?"
+            else
+               # "Silent Mode" active, force automatic copy from Repository.
+               ANS=0
+            fi
             #
             if [ $ANS -eq 0 ] ; then
                # Yes, copy from repository.
@@ -793,9 +814,19 @@ f_version_compare () {
                   f_message $1 "OK" "Error occurred" $TEMP_FILE
                   ERROR=1
                else
-                  f_message $1 "NOK" "Successful Update" "Latest version was successfully copied for use.\nScript must be re-started to use the latest version." 2
                   ERROR=0
+                  # Is "Silent Mode" activated?
+                  if [ -z "$8" ] ; then
+                     # "Silent Mode" inactive, display question.
+                     f_message $1 "NOK" "Successful Update" "Latest version was successfully copied for use.\nScript must be re-started to use the latest version."
+                  fi
                fi
+            fi
+         else
+            # Is "Silent Mode" activated?
+            if [ -z "$8" ] ; then
+               # "Silent Mode" inactive, display question.
+               f_message $1 "NOK" "Software Not Updated" "Software is at the latest version. No update needed."
             fi
          fi
       fi
@@ -914,9 +945,9 @@ f_arguments () {
            ;;
            --update | -u)
               if [ -z $GUI ] ; then
-                 f_check_version text $SERVER_DIR $MP_DIR $LOCAL_REPO_DIR $FILE_TO_COMPARE $VERSION_TO_COMPARE $FILE_LIST
+                 f_check_version text
               else
-                 f_check_version $GUI $SERVER_DIR $MP_DIR $LOCAL_REPO_DIR $FILE_TO_COMPARE $VERSION_TO_COMPARE $FILE_LIST
+                 f_check_version $GUI
               fi
               #
               clear # Blank the screen.
