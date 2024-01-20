@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2024-01-16 20:00"
+VERSION="2024-01-19 21:16"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -76,6 +76,10 @@ VERSION="2024-01-16 20:00"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2024-01-19 *f_menu_main_all_menus_TEMPLATE added.
+##            *f_menu_main_TEMPLATE_2 deleted in favor of f_menu_main_all_menus_TEMPLATE.
+##            *f_menu_main_all_plus_TEMPLATE deleted in favor of f_menu_main_all_menus_TEMPLATE.
 ##
 ## 2024-01-16 *f_check_version_TEMPLATE, f_version_compare added
 ##             "Silent Mode" parameter and only ask question to update
@@ -569,7 +573,7 @@ f_display_common_TEMPLATE () {
 # |        Function f_check_version_TEMPLATE        |
 # +----------------------------------------+
 #
-#     Rev: 2024-01-16
+#     Rev: 2022-05-19
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - [OPTIONAL] File name to compare.
 #          $3 - [OPTIONAL] 1=Silent mode.
@@ -4786,6 +4790,155 @@ f_update_menu_gui () {
       #
 }  # End of function f_update_menu_gui.
 #
+# +-----------------------------------------+
+# | Function f_menu_main_all_menus_TEMPLATE          |
+# +-----------------------------------------+
+#
+#     Rev: 2024-01-19
+#  Inputs: $1 - "text", "dialog" or "whiptail" the preferred user-interface.
+#          $2 - MENU_TITLE Title of menu which must also match the header
+#               and tail strings for the menu data in the ARRAY_SOURCE_FILE.
+#              !!!Menu title MUST use underscores instead of spaces!!!
+#          $3 - ARRAY_SOURCE_FILE is the file name where the menu data is stored.
+#               This can be the run-time script or a separate *.lib library file.
+#    Uses: ARRAY_SOURCE_FILE, ARRAY_TEMP_FILE, GENERATED_FILE, MENU_TITLE, TEMP_FILE.
+# Outputs: None.
+#
+# Summary: Display any menu. Use this same function to display
+#          both Main-Menu and any sub-menus. The Main Menu and all sub-menu data
+#          are in a separte library file from the run-time script or program.
+#          A single library file contains data for multiple menus (many menus/1 library file),
+#          In this scheme, multiple menu data is in the library file,
+#          which may also contain various functions in addition to the menu data.
+#
+#          Simply state the Path/Filename of the library file, ARRAY_SOURCE_FILE
+#          which contains the menu data.
+#
+# Dependencies: f_menu_arrays, f_create_show_menu.
+#
+# PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
+#              THIS FUNCTION INTO THE MAIN SCRIPT WHICH WILL CALL IT.
+#
+f_menu_main_all_menus_TEMPLATE () {
+      #
+      #
+      #================================================================================
+      # EDIT THE LINE BELOW TO DEFINE $ARRAY_SOURCE_FILE AS THE ACTUAL FILE NAME
+      # WHERE THE MENU ITEM DATA IS LOCATED. THE LINES OF DATA ARE PREFIXED BY "#@@".
+      #================================================================================
+      #
+      #
+      # Note: Alternate menu data storage scheme.
+      # For a separate library file for each menu data (1 menu/1 library file),
+      # or for the run-time program to contain the Main Menu data (1 Main menu/run-time script),
+      # then see f_menu_main_TEMPLATE in common_bash_function.lib
+      #
+      # Specify the library file name with menu item data.
+      # ARRAY_SOURCE_FILE (Not a temporay file) includes menu items
+      # from one or more menus (multiple menus/1 library file ARRAY_SOURCE_FILE).
+      ARRAY_SOURCE_FILE=$3
+      #
+      #
+      #================================================================================
+      # EDIT THE LINE BELOW TO DEFINE MENU_TITLE AS THE ACTUAL TITLE OF THE MENU THAT
+      # CONTAINS THE MENU ITEM DATA. THE LINES OF DATA ARE PREFIXED BY "#@@".
+      #================================================================================
+      #
+      #
+      # Note: ***If Menu title contains spaces,
+      #       ***the size of the menu window will be too narrow.
+      #
+      # Menu title MUST use underscores instead of spaces.
+      MENU_TITLE=$2
+      #
+      # Examples of valid $2 parameters:
+      # MENU_TITLE="Main_Menu"
+      # MENU_TITLE="Task_Menu"
+      # MENU_TITLE="Utility_Menu"
+      #
+      # The MENU_TITLE must match the strings in the ARRAY_SOURCE_FILE.
+      #
+      #       The run-time script file, "ice_cream.sh" may also contain the data
+      #       for both Main menu and sub-menus if it follows the same format below.
+      #
+      #       If you have a lot of menus, you may want to have all the menu data
+      #       in a separate library file.
+      #
+      #       Example:
+      #
+      #       The file "all_ice_cream_menus.lib" contains the data for both
+      #       Main menu: "Tasty Ice Cream Menu"
+      #        Sub-menu: "Ice Cream Toppings Menu".
+      #
+      #  Each menu (Main Menu and sub-menus) must have Header and Tail strings.
+      #  Main menu header/tail strings:
+      #  Header string: "Start Listing Tasty Ice Cream Menu" (with spaces " ")
+      #    Tail string: "End Listing Tasty Ice Cream Menu"
+      #
+      #  Sub-menu header/tail strings:
+      #  Header string: "Start Listing Ice Cream Toppings Menu"
+      #    Tail string: "End Listing Ice Cream Toppings Menu"
+      #
+      #
+      #  Example:
+      #
+      #  ARRAY_SOURCE_FILE="All_Ice_Cream_Menus.lib"
+      #
+      #  Listing of $ARRAY_SOURCE_FILE (All_Ice_Cream_Menus.lib)
+      #          which includes menu item data:
+      #
+      #  Start Listing Tasty Ice Cream Menu (Required header, do not delete).
+      #      Data for Menu item 1
+      #      Data for Menu item 2
+      #      Data for Menu item 3
+      #  End  Listing Tasty Ice Cream Menu (Required line, do not delete).
+      #
+      #  Start Listing Ice Cream Toppings Menu (Required header, do not delete).
+      #      Data for Menu item 1
+      #      Data for Menu item 2
+      #      Data for Menu item 3
+      #  End Listing Ice Cream Toppings Menu (Required line, do not delete).
+      #
+      #
+      TEMP_FILE=$THIS_DIR/$THIS_FILE"_menu_temp.txt"
+      #
+      # GENERATED_FILE (The name of a temporary library file which contains the code to display the sub-menu).
+      GENERATED_FILE=$THIS_DIR/$THIS_FILE"_menu_generated.lib"
+      #
+      # ARRAY_TEMP_FILE (Temporary file) includes menu items imported from $ARRAY_SOURCE_FILE of a single menu.
+      ARRAY_TEMP_FILE=$THIS_DIR/$THIS_FILE"_menu_array_generated.lib"
+      #
+      # ARRAY_FILE is used by f_update_menu_gui and f_update_menu_txt.
+      # It is not included in formal passed parameters but is used anyways
+      # in the $GENERATED_FILE as a line: "source $ARRAY_FILE".
+      # I wanted to retire this variable name, but it has existed in the
+      # common_bash_function.lib library for quite a while.
+      ARRAY_FILE=$GENERATED_FILE
+      #
+      # When using f_create_a_menu, all subsequent sub-menus do not need a separate
+      # hard-coded function, since f_create_a_menu will generate sub-menu functions as needed.
+      #
+      # List of inputs for f_create_a_menu.
+      #
+      #  Inputs: $1 - "text", "dialog" or "whiptail" The command-line user-interface application in use.
+      #          $2 - GENERATED_FILE (The name of a temporary library file containing the suggested phrase "generated.lib" which contains the code to display the sub-menu).
+      #          $3 - MENU_TITLE (Title of the sub-menu)
+      #          $4 - TEMP_FILE (Temporary file).
+      #          $5 - ARRAY_TEMP_FILE (Temporary file) includes menu items imported from $ARRAY_SOURCE_FILE of a single menu.
+      #          $6 - ARRAY_SOURCE_FILE (Not a temporary file) includes menu items from multiple menus.
+      #
+      f_create_a_menu $1 $GENERATED_FILE $MENU_TITLE $TEMP_FILE $ARRAY_TEMP_FILE $ARRAY_SOURCE_FILE
+      #
+      if [ -e $TEMP_FILE ] ; then
+         rm $TEMP_FILE
+      fi
+      #
+      if [ -e  $GENERATED_FILE ] ; then
+         rm  $GENERATED_FILE
+      fi
+      #
+} # End of function f_menu_main_all_menus_TEMPLATE
+#
 # +----------------------------------------+
 # |          Function f_menu_main_TEMPLATE          |
 # +----------------------------------------+
@@ -4796,7 +4949,12 @@ f_update_menu_gui () {
 #          MAX_LENGTH, MAX_CHOICE_LENGTH, MAX_SUMMARY_LENGTH.
 # Outputs: None.
 #
-# Summary: Template for Main-Menu
+# Summary: Template for Main-Menu where the ARRAY_SOURCE_FILE can contain data for only 1 menu.
+#          For sub-menus, this template and the sub-menu data must both be in a separate ARRAY_SOURCE_FILE.
+#
+#          Please see f_menu_main_all_menus_TEMPLATE for a much more flexible menu template
+#          for both Main Menus and sub-menus.
+#
 #          This Main Menu function checks the run-time script for the Main Menu
 #          options delimited by "#@@" and if it does not find any, then
 #          it it defaults to the specified library script.
@@ -4892,211 +5050,6 @@ f_menu_main_TEMPLATE () {
       fi
       #
 }  # End of function f_menu_main_TEMPLATE.
-#
-# +----------------------------------------+
-# |          Function f_menu_main_TEMPLATE_2  |
-# +----------------------------------------+
-#
-#     Rev: 2024-01-13
-#  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
-#    Uses: ARRAY_SOURCE_FILE, ARRAY_TEMP_FILE, GENERATED_FILE, MENU_TITLE, TEMP_FILE.
-# Outputs: None.
-#
-# Summary: Template for Main Menus and sub-menus.
-#          Simpler implementation than the f_menu_main_TEMPLATE function.
-#
-#          Either the run-time file or library file can contain menu item data for a SINGLE menu only.
-#          With this scheme, a separate library file is needed for each menu (1 menu/1 library file).
-#          So the Main Menu data may be either in the run-time script or in a separate library file.
-#
-#          Note: Alternate menu data storage scheme.
-#          For a single library file containg data for multiple menus (many menus/1 library file),
-#          then see f_menu_multiple_TEMPLATE in common_bash_function.lib.
-#
-# Dependencies: f_menu_arrays, f_create_show_menu.
-#
-f_menu_main_TEMPLATE_2 () {
-      #
-      # Note: ***If Menu title contains spaces,
-      #       ***the size of the menu window will be too narrow.
-      #
-      # Menu title MUST use underscores instead of spaces.
-      MENU_TITLE="Main_Menu"
-      #
-      TEMP_FILE=$THIS_DIR/$THIS_FILE"_menu_temp.txt"
-      #
-      # GENERATED_FILE (The name of a temporary library file which contains the code to display the sub-menu).
-      GENERATED_FILE=$THIS_DIR/$THIS_FILE"_menu_generated.lib"
-      #
-      #
-      #==================================================================
-      # EDIT THE LINE BELOW TO DEFINE $ARRAY_FILE AS THE ACTUAL FILE NAME
-      # (LIBRARY) WHERE THE MENU ITEM DATA IS LOCATED. THE LINES OF DATA
-      # ARE PREFIXED BY "#@@".
-      #==================================================================
-      #
-      #
-      # Specify the library file name with menu item data.
-      # ARRAY_SOURCE_FILE (Not a temporay file) may include menu items
-      # from MULTIPLE menus (multiple menus/1 library file ARRAY_SOURCE_FILE).
-      ARRAY_SOURCE_FILE="[FILENAME_GOES_HERE]"
-      #
-      # ARRAY_FILE is used by f_update_menu_gui and f_update_menu_txt.
-      # It is not included in formal passed parameters but is used anyways
-      # in the $GENERATED_FILE as a line: "source $ARRAY_FILE".
-      # I wanted to retire this variable name, but it has existed in the
-      # common_bash_function.lib library for quite a while.
-      ARRAY_FILE=$GENERATED_FILE
-      #
-      # Create arrays from data.
-      f_menu_arrays $ARRAY_SOURCE_FILE
-      #
-      # Calculate longest line length to find maximum menu width
-      # for Dialog or Whiptail using lengths calculated by f_menu_arrays.
-      let MAX_LENGTH=$MAX_CHOICE_LENGTH+$MAX_SUMMARY_LENGTH
-      #
-      # Create generated menu script from array data.
-      f_create_show_menu $1 $GENERATED_FILE $MENU_TITLE $MAX_LENGTH $MAX_LINES $MAX_CHOICE_LENGTH $TEMP_FILE
-      #
-      if [ -r $GENERATED_FILE ] ; then
-         rm $GENERATED_FILE
-      fi
-      #
-      if [ -r $TEMP_FILE ] ; then
-         rm $TEMP_FILE
-      fi
-      #
-}  # End of function f_menu_main_TEMPLATE_2.
-#
-# +----------------------------------------+
-# | Function f_menu_main_all_plus_TEMPLATE |
-# +----------------------------------------+
-#
-#     Rev: 2024-01-13
-#  Inputs: $1 - "text", "dialog" or "whiptail" the preferred user-interface.
-#    Uses: ARRAY_SOURCE_FILE, ARRAY_TEMP_FILE, GENERATED_FILE, MENU_TITLE, TEMP_FILE.
-# Outputs: None.
-#
-# Summary: Display Main-Menu or any menu. The Main Menu and all sub-menu data
-#          are in a separte library file from the run-time script or program.
-#          A single library file contains data for multiple menus (many menus/1 library file),
-#          In this scheme, multiple menu data is in the library file,
-#          which may also contain various functions in addition to the menu data.
-#
-#          Simply state the Path/Filename of the library file, ARRAY_SOURCE_FILE
-#          which contains the menu data.
-#
-# Dependencies: f_menu_arrays, f_create_show_menu.
-#
-# PLEASE NOTE: RENAME THIS FUNCTION WITHOUT SUFFIX "_TEMPLATE" AND COPY
-#              THIS FUNCTION INTO THE MAIN SCRIPT WHICH WILL CALL IT.
-#
-f_menu_main_all_plus_TEMPLATE () {
-      #
-      # Note: ***If Menu title contains spaces,
-      #       ***the size of the menu window will be too narrow.
-      #
-      # Menu title MUST use underscores instead of spaces.
-      MENU_TITLE="Main_Menu"
-      #
-      # The MENU_TITLE must match the strings in the ARRAY_SOURCE_FILE.
-      #
-      #       The run-time script file, "ice_cream.sh" may also contain the data
-      #       for both Main menu and sub-menus if it follows the same format below.
-      #
-      #       If you have a lot of menus, you may want to have all the menu data
-      #       in a separate library file.
-      #
-      #       Example:
-      #
-      #       The file "all_ice_cream_menus.lib" contains the data for both
-      #       Main menu: "Tasty Ice Cream Menu"
-      #        Sub-menu: "Ice Cream Toppings Menu".
-      #
-      #  Each menu (Main Menu and sub-menus) must have Header and Tail strings.
-      #  Main menu header/tail strings:
-      #  Header string: "Start Listing Tasty Ice Cream Menu" (with spaces " ")
-      #    Tail string: "End Listing Tasty Ice Cream Menu"
-      #  must be used in the header/tail string sentences of the menu item data.
-      #
-      #  Sub-menu header/tail strings:
-      #  Header string: "Start Listing Ice Cream Toppings Menu"
-      #    Tail string: "End Listing Ice Cream Toppings Menu"
-      #
-      #  Example:
-      #  ARRAY_SOURCE_FILE="All_Ice_Cream_Menus.lib"
-      #
-      #  Listing of $ARRAY_SOURCE_FILE (All_Ice_Cream_Menus.lib)
-      #          which includes menu item data:
-      #
-      #  Start Listing Tasty Ice Cream Menu (Required header, do not delete).
-      #      Data for Menu item 1
-      #      Data for Menu item 2
-      #      Data for Menu item 3
-      #  End  Listing Tasty Ice Cream Menu (Required line, do not delete).
-      #
-      #  Start Listing Ice Cream Toppings Menu (Required header, do not delete).
-      #      Data for Menu item 1
-      #      Data for Menu item 2
-      #      Data for Menu item 3
-      #  End Listing Ice Cream Toppings Menu (Required line, do not delete).
-      #
-      #
-      TEMP_FILE=$THIS_DIR/$THIS_FILE"_menu_temp.txt"
-      #
-      # GENERATED_FILE (The name of a temporary library file which contains the code to display the sub-menu).
-      GENERATED_FILE=$THIS_DIR/$THIS_FILE"_menu_generated.lib"
-      #
-      # ARRAY_TEMP_FILE (Temporary file) includes menu items imported from $ARRAY_SOURCE_FILE of a single menu.
-      ARRAY_TEMP_FILE=$THIS_DIR/$THIS_FILE"_menu_array_generated.lib"
-      #
-      #
-      #================================================================================
-      # EDIT THE LINE BELOW TO DEFINE $ARRAY_FILE AS THE ACTUAL FILE NAME (LIBRARY)
-      # WHERE THE MENU ITEM DATA IS LOCATED. THE LINES OF DATA ARE PREFIXED BY "#@@".
-      #================================================================================
-      #
-      #
-      # Note: Alternate menu data storage scheme.
-      # For a separate library file for each menu data (1 menu/1 library file),
-      # or for the run-time program to contain the Main Menu data (1 Main menu/run-time script),
-      # then see f_menu_main_TEMPLATE in common_bash_function.lib
-      #
-      # Specify the library file name with menu item data.
-      # ARRAY_SOURCE_FILE (Not a temporay file) includes menu items
-      # from one or more menus (multiple menus/1 library file ARRAY_SOURCE_FILE).
-      ARRAY_SOURCE_FILE="[FILENAME_GOES_HERE]"
-      #
-      # ARRAY_FILE is used by f_update_menu_gui and f_update_menu_txt.
-      # It is not included in formal passed parameters but is used anyways
-      # in the $GENERATED_FILE as a line: "source $ARRAY_FILE".
-      # I wanted to retire this variable name, but it has existed in the
-      # common_bash_function.lib library for quite a while.
-      ARRAY_FILE=$GENERATED_FILE
-      #
-      # When using f_create_a_menu, all subsequent sub-menus do not need a separate
-      # hard-coded function, since f_create_a_menu will generate sub-menu functions as needed.
-      #
-      # List of inputs for f_create_a_menu.
-      #
-      #  Inputs: $1 - "text", "dialog" or "whiptail" The command-line user-interface application in use.
-      #          $2 - GENERATED_FILE (The name of a temporary library file containing the suggested phrase "generated.lib" which contains the code to display the sub-menu).
-      #          $3 - MENU_TITLE (Title of the sub-menu)
-      #          $4 - TEMP_FILE (Temporary file).
-      #          $5 - ARRAY_TEMP_FILE (Temporary file) includes menu items imported from $ARRAY_SOURCE_FILE of a single menu.
-      #          $6 - ARRAY_SOURCE_FILE (Not a temporary file) includes menu items from multiple menus.
-      #
-      f_create_a_menu $1 $GENERATED_FILE $MENU_TITLE $TEMP_FILE $ARRAY_TEMP_FILE $ARRAY_SOURCE_FILE
-      #
-      if [ -e $TEMP_FILE ] ; then
-         rm $TEMP_FILE
-      fi
-      #
-      if [ -e  $GENERATED_FILE ] ; then
-         rm  $GENERATED_FILE
-      fi
-      #
-} # End of function f_menu_main_all_plus_TEMPLATE
 #
 # +----------------------------------------+
 # |         Function f_create_a_menu       |
@@ -5278,7 +5231,7 @@ f_menu_make () {
       ENDING_LINE=$(grep -n "End Listing $MENU_TITLE"     $4 | awk -F ":" '{print $1 }')
       #
       # Copy text between $STARTING_LINE and $ENDING_LINE into a text file.
-      # Create sed command "$STARTING_LINE,$ENDING_LINEp" i.e. "31,51p".
+      # Create sed command "$STARTING_LINE,$ENDING_LINEp" i.e. "31,51p" for STARTING_LINE=31, ENDING_LINE=51.
       SEDSTR="$STARTING_LINE,$ENDING_LINE"
       SEDSTR=$SEDSTR"p"
       #
