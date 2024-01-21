@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2024-01-19 21:16"
+VERSION="2024-01-20 20:13"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -76,6 +76,8 @@ VERSION="2024-01-19 21:16"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2024-01-20 *f_check_version_TEMPLATE, f_test_dash update revision date and documentation.
 ##
 ## 2024-01-19 *f_menu_main_all_menus_TEMPLATE added.
 ##            *f_menu_main_TEMPLATE_2 deleted in favor of f_menu_main_all_menus_TEMPLATE.
@@ -573,7 +575,7 @@ f_display_common_TEMPLATE () {
 # |        Function f_check_version_TEMPLATE        |
 # +----------------------------------------+
 #
-#     Rev: 2022-05-19
+#     Rev: 2024-01-16
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - [OPTIONAL] File name to compare.
 #          $3 - [OPTIONAL] 1=Silent mode.
@@ -1096,7 +1098,7 @@ f_test_environment () {
 # |          Function f_test_dash          |
 # +----------------------------------------+
 #
-#     Rev: 2021-03-07
+#     Rev: 2024-01-20
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $BASH_VERSION (System variable), GUI.
 #    Uses: None.
@@ -1105,6 +1107,8 @@ f_test_environment () {
 # Summary: Test the environment. Are you in the BASH environment?
 #          Some scripts will have errors in the DASH environment that is the
 #          default command-line interface shell in Ubuntu.
+#
+# Dependencies: f_message, f_abort.
 #
 f_test_dash () {
       #
