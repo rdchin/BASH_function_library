@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2024-01-20 20:13"
+VERSION="2024-02-15 14:37"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -76,6 +76,8 @@ VERSION="2024-01-20 20:13"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2024-02-15 *f_show_mount_points added passed parameters.
 ##
 ## 2024-01-20 *f_check_version_TEMPLATE, f_test_dash update revision date and documentation.
 ##
@@ -508,8 +510,12 @@ VERSION="2024-01-20 20:13"
 #     Rev: 2021-03-31
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - Delimiter of text to be displayed.
-#          $3 - "NOK", "OK", or null [OPTIONAL] to control display of "OK" button.
-#          $4 - Pause $4 seconds [OPTIONAL]. If "NOK" then pause to allow text to be read.
+#          $3 - [OPTIONAL] to control display of prompt to continue.
+#                          null (Default) - "OK" button or text prompt, display until either Enter key or "OK" button is pressed.
+#                          "OK"           - "OK" button or text prompt, display until either Enter key or "OK" button is pressed.
+#                          "NOK"          - No "OK" button or text prompt, display for $3 seconds before continuing automatically.
+#          $4 - [OPTIONAL] to control pause duration. Only used if $3="NOK".
+#                          $4 seconds pause to allow text to be read before continuing automatically.
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: X.
 # Outputs: None.
@@ -578,7 +584,9 @@ f_display_common_TEMPLATE () {
 #     Rev: 2024-01-16
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - [OPTIONAL] File name to compare.
-#          $3 - [OPTIONAL] 1=Silent mode.
+#          $3 - [OPTIONAL] to control display of messages and interactive user questions.
+#                          null (default) - Display error and status messages and interactive user questions.
+#                          1              - Display error messages only (Silent mode).
 #          FILE_TO_COMPARE.
 #    Uses: SERVER_DIR, MP_DIR, LOCAL_REPO_DIR, $FILE_TO_COMPARE, FILE_LIST,
 #          VERSION, TEMP_FILE, ERROR.
@@ -691,8 +699,9 @@ f_check_version_TEMPLATE () {
 #          $5 - File server Target File name.
 #          $6 - Version of Local file. String.
 #          $7 - Temporary file name with list of files to be upgraded.
-#          $8 - 1=Silent mode without displaying questions or status.
-#               Display error messages only.
+#          $8 - [OPTIONAL] to control display of messages and interactive user questions.
+#                          null (default) - Display error and status messages and interactive user questions.
+#                          1              - Display error messages only (Silent mode).
 #    Uses: LINE, VER, VER_MSG, VERSION_RELEASE, ERROR2.
 # Outputs: ERROR, ANS.
 #
@@ -1442,8 +1451,12 @@ f_abort () {
 #
 #     Rev: 2021-03-07
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
-#          $2 - "NOK", "OK", or null [OPTIONAL] to control display of "OK" button.
-#          $3 - Pause $3 seconds [OPTIONAL]. If "NOK" then pause to allow text to be read.
+#          $2 - [OPTIONAL] to control display of prompt to continue.
+#                          null (Default) - "OK" button or text prompt, display until either Enter key or "OK" button is pressed.
+#                          "OK"           - "OK" button or text prompt, display until either Enter key or "OK" button is pressed.
+#                          "NOK"          - No "OK" button or text prompt, display for $3 seconds before continuing automatically.
+#          $3 - [OPTIONAL] to control pause duration. Only used if $2="NOK".
+#                          $3 seconds pause to allow text to be read before continuing automatically.
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: DELIM.
 # Outputs: None.
@@ -1469,8 +1482,12 @@ f_about () {
 #
 #     Rev: 2021-03-07
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
-#          $2 - "NOK", "OK", or null [OPTIONAL] to control display of "OK" button.
-#          $3 - Pause $3 seconds [OPTIONAL]. If "NOK" then pause to allow text to be read.
+#          $2 - [OPTIONAL] to control display of prompt to continue.
+#                          null (Default) - "OK" button or text prompt, display until either Enter key or "OK" button is pressed.
+#                          "OK"           - "OK" button or text prompt, display until either Enter key or "OK" button is pressed.
+#                          "NOK"          - No "OK" button or text prompt, display for $3 seconds before continuing automatically.
+#          $3 - [OPTIONAL] to control pause duration. Only used if $2="NOK".
+#                          $3 seconds pause to allow text to be read before continuing automatically.
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: DELIM.
 # Outputs: None.
@@ -1496,8 +1513,12 @@ f_code_history () {
 #
 #     Rev: 2021-03-07
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
-#          $2 - "NOK", "OK", or null [OPTIONAL] to control display of "OK" button.
-#          $3 - Pause $3 seconds [OPTIONAL]. If "NOK" then pause to allow text to be read.
+#          $2 - [OPTIONAL] to control display of prompt to continue.
+#                          null (Default) - "OK" button or text prompt, display until either Enter key or "OK" button is pressed.
+#                          "OK"           - "OK" button or text prompt, display until either Enter key or "OK" button is pressed.
+#                          "NOK"          - No "OK" button or text prompt, display for $3 seconds before continuing automatically.
+#          $3 - [OPTIONAL] to control pause duration. Only used if $2="NOK".
+#                          $3 seconds pause to allow text to be read before continuing automatically.
 #          THIS_DIR, THIS_FILE, VERSION.
 #    Uses: DELIM.
 # Outputs: None.
@@ -1522,6 +1543,12 @@ f_help_message () {
 # +----------------------------------------+
 #
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
+#          $2 - [OPTIONAL] to control display of prompt to continue.
+#                          null (Default) - "OK" button or text prompt, display until either Enter key or "OK" button is pressed.
+#                          "OK"           - "OK" button or text prompt, display until either Enter key or "OK" button is pressed.
+#                          "NOK"          - No "OK" button or text prompt, display for $3 seconds before continuing automatically.
+#          $3 - [OPTIONAL] to control pause duration. Only used if $2="NOK".
+#                          $3 seconds pause to allow text to be read before continuing automatically.
 #          $THIS_FILE,
 #    Uses: X, Y, ERROR, $TEMP_FILE.
 # Outputs: None.
@@ -1654,7 +1681,14 @@ f_show_mount_points () {
       lsblk -fs --tree --output NAME,SIZE,FSUSED,FSUSE%,FSAVAIL,FSTYPE,MOUNTPOINT | grep -e sd[a-z][1-9] -e md | awk  '{ printf "%-7s %-6s %-8s %-6s %-8s %-8s %s\n", $1,$2,$3,$4,$5,$6,$7 }' >>$TEMP_FILE
       #
       # Display results.
-      f_message $1 "OK" "(use arrow keys to scroll up/down/side-ways)" $TEMP_FILE
+      case $2 in
+           "NOK" | "nok")
+             f_message $1 "NOK" "(use arrow keys to scroll up/down/side-ways)" $TEMP_FILE "$3"
+             ;;
+           *)
+             f_message $1 "OK" "(use arrow keys to scroll up/down/side-ways)" $TEMP_FILE "$3"
+             ;;
+      esac
       #
       # Delete temporary file.
       if [ -r $TEMP_FILE ] ; then
@@ -1675,9 +1709,10 @@ f_show_mount_points () {
 #          $2 - TARGET_DIR.
 #                  (String must either begin and end with double-quotes
 #                  or must not include spaces but must have underscores substituting for spaces).
-#          $3 - [Optional] Foreground/Background process flag.
-#               1 or null - Run file manager as a foreground process.
-#               2 - Run file manager as a Background process.
+#          $3 - [OPTIONAL] Foreground/Background process flag.
+#                          null (Default) - Run file manager as a foreground process.
+#                          1              - Run file manager as a foreground process.
+#                          2              - Run file manager as a Background process.
 #    Uses: FILE_MGR FILE_MGR_APPS.
 # Outputs: ERROR, RUNAPP.
 #
@@ -1804,10 +1839,11 @@ f_file_manager () {
 #                  (String must either begin and end with double-quotes
 #                  or must have underscores substituting for spaces).
 #          $3 - Default directory.
-#          $4 - [Optional] File name.
-#          $5 - [Optional] Foreground/Background process flag.
-#               1 or null - Run file manager as a foreground process.
-#               2 - Run file manager as a Background process.
+#          $4 - [OPTIONAL] File name.
+#          $5 - [OPTIONAL] Foreground/Background process flag.
+#                          null (Default) - Run file manager as a foreground process.
+#                          1              - Run file manager as a foreground process.
+#                          2              - Run file manager as a Background process.
 #          THIS_DIR, THIS_FILE.
 #    Uses: RUNAPP
 # Outputs: ERROR.
@@ -2033,8 +2069,10 @@ f_web_browser () {
 #                  or must have underscores substituting for spaces).
 #                  !!! String cannot be longer than 28 characters !!!
 #          $3 - Default parent directory.
-#          $4 - [Optional] 1/0 1=Select only one directory
-#                            0 or null=Select multiple directories.
+#          $4 - [OPTIONAL] to select one or more directories.
+#                          null (Default) - Select multiple directories.
+#                          0              - Select multiple directories.
+#                          1              - Select only one directory.
 #          THIS_DIR.
 #    Uses: TEMP_FILE2, ANS, ERROR, SCRIPT_LIST.
 # Outputs: ANS (List of selected directories delimited by spaces)
@@ -2287,8 +2325,10 @@ f_select_dir () {
 #                  or must have underscores substituting for spaces).
 #                  !!! String cannot be longer than 28 characters !!!
 #          $3 - Original Default directory.
-#          $4 - [Optional] 1/0 1=Select only one directory
-#                            0 or null=Select multiple directories.
+#          $4 - [OPTIONAL] to select one or more directories.
+#                          null (Default) - Select multiple directories.
+#                          0              - Select multiple directories.
+#                          1              - Select only one directory.
 #          THIS_DIR.
 #    Uses: None.
 # Outputs: TEMP_FILE2 (List of selected directories delimited by spaces)
@@ -2354,8 +2394,10 @@ f_select_dir_fzf () {
 #                  !!! String cannot be longer than 28 characters !!!
 #          $3 - Selected directory.
 #          $4 - Original Default directory.
-#          $5 - [Optional] 1/0 1=Select only one directory
-#                            0 or null=Select multiple directories.
+#          $5 - [OPTIONAL] to select one or more directories.
+#                          null (Default) - Select multiple directories.
+#                          0              - Select multiple directories.
+#                          1              - Select only one directory.
 #          THIS_DIR.
 #    Uses: None.
 # Outputs: TEMP_FILE2 - Temporary file contains a list of file names.
@@ -2499,8 +2541,10 @@ f_select_dir_verify () {
 #                  or must have underscores substituting for spaces).
 #                  !!! String cannot be longer than 28 characters !!!
 #          $3 - Default directory or Default directory/file name.
-#          $4 - [Optional] 1/0 1=Select only one file
-#                              0 or null=Select multiple files.
+#          $4 - [OPTIONAL] to select one or more files.
+#                          null (Default) - Select multiple files.
+#                          0              - Select multiple files.
+#                          1              - Select only one file.
 #          THIS_DIR, THIS_FILE.
 #    Uses: TEMP_FILE, ANS, ERROR, SCRIPT_LIST.
 # Outputs: ANS (List of selected files delimited by spaces: "DIR1/FILE1 DIR2/FILE2 DIR3/FILE3...")
@@ -2743,9 +2787,10 @@ f_select_file () {
 #                  !!! String cannot be longer than 28 characters !!!
 #          $3 - Default directory or Default directory/file name.
 #          $4 - FILE_SELECTED File selected by user entry.
-#          $5 - [Optional] 1/0 1=Select only one file
-#                              0 or null=Select multiple files.
-#
+#          $5 - [OPTIONAL] to select one or more files.
+#                          null (Default) - Select multiple files.
+#                          0              - Select multiple files.
+#                          1              - Select only one file.
 #          THIS_DIR, THIS_FILE.
 #    Uses: FILE_DESCR, DEFAULT_DIR, FILE_SELECTED, ANS, ERROR.
 # Outputs: TEMP_FILE2 - Temporary file contains a list of file names.
@@ -2836,8 +2881,10 @@ f_select_file_verify () {
 #                                       DIR1/FILE1
 #                                       DIR2/FILE2
 #                                       DIR3/FILE3
-#          $5 - [Optional] 1/0 1=Select only one file
-#                              0 or null=Select multiple files.
+#          $5 - [OPTIONAL] to select one or more files.
+#                          null (Default) - Select multiple files.
+#                          0              - Select multiple files.
+#                          1              - Select only one file.
 #
 #          THIS_DIR, THIS_FILE.
 #    Uses: TEMP_FILE2, TEMP_FILE3.
@@ -3000,9 +3047,9 @@ f_choose_files () {
 #          $3 - Question text string or text file.
 #                  (String must either begin and end with double-quotes
 #                  or must have underscores substituting for spaces).
-#          $4 - [Optional] Default answer - Default answer string.
-#                  (String must either begin and end with double-quotes
-#                  or must have underscores substituting for spaces).
+#          $4 - [OPTIONAL] Default answer - Default answer string.
+#                          (String must either begin and end with double-quotes
+#                          or must have underscores substituting for spaces).
 #    Uses: None.
 # Outputs: ANS=String.
 #          ERROR=1 "Exit" or "Cancel" button pressed in Dialog or Whiptail.
