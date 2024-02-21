@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2024-02-15 23:51"
+VERSION="2024-02-20 22:48"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -77,7 +77,9 @@ VERSION="2024-02-15 23:51"
 ##
 ## (After each edit made, please update Code History and VERSION.)
 ##
-## 2024-02-15 *f_show_mount_points added passed parameters.
+## 2024-02-20 *f_msg_txt_file_ok bug fixed where title was not displayed.
+##
+## 2024-02-16 *f_show_mount_points added passed parameters.
 ##            *f_menu_main_all_menus_TEMPLATE improved comments.
 ##            *Section "Code Change History" edited comments.
 ##
@@ -4352,7 +4354,7 @@ f_msg_txt_str_nok () {
 # |  Function f_msg_txt_file_ok  |
 # +------------------------------+
 #
-#     Rev: 2021-03-07
+#     Rev: 2024-02-20
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - "OK"  [OK] button at end of text.
 #               "NOK" No [OK] button or "Press Enter key to continue"
@@ -4373,10 +4375,14 @@ f_msg_txt_file_ok () {
       # If $2 is "OK" then use command "less".
       #
       clear  # Blank the screen.
+      echo $3 > $TEMP_FILE"_2.txt"
+      echo >> $TEMP_FILE"_2.txt"
+      cat $4 >> $TEMP_FILE"_2.txt"
       #
       # Display text file contents.
-      less -P '%P\% (Spacebar, PgUp/PgDn, Up/Dn arrows, press q to quit)' $4
+      less -P '%P\% (Spacebar, PgUp/PgDn, Up/Dn arrows, press q to quit)' $TEMP_FILE"_2.txt"
       #
+      rm $TEMP_FILE"_2.txt"
       clear  # Blank the screen.
       #
 }  # End of function f_msg_txt_file_ok
@@ -4860,7 +4866,7 @@ f_update_menu_gui () {
 # | Function f_menu_main_all_menus_TEMPLATE          |
 # +-----------------------------------------+
 #
-#     Rev: 2024-02-15
+#     Rev: 2024-02-18
 #  Inputs: $1 - "text", "dialog" or "whiptail" the preferred user-interface.
 #          $2 - MENU_TITLE Title of menu which must also match the header
 #               and tail strings for the menu data in the ARRAY_SOURCE_FILE.
@@ -5110,12 +5116,14 @@ f_menu_main_TEMPLATE () {
 # |         Function f_create_a_menu       |
 # +----------------------------------------+
 #
-#     Rev: 2022-05-07
+#     Rev: 2024-02-18
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - GENERATED_FILE (The name of a temporary library file containing the suggested phrase "generated.lib" which contains the code to display the sub-menu).
 #          $3 - MENU_TITLE (Title of the sub-menu)
 #          $4 - TEMP_FILE (Temporary file).
 #          $5 - ARRAY_TEMP_FILE (Temporary file) includes menu items imported from $ARRAY_SOURCE_FILE of a single menu.
+#               Menu items in $ARRAY_TEMP_FILE and $ARRAY_SOURCE_FILE are $delimited by "#@@".
+#               The menu items are copied from the $ARRAY_SOURCE_FILE into the $ARRAY_TEMP_FILE since the $ARRAY_SOURCE_FILE also contains run-time functions and code.
 #          $6 - ARRAY_SOURCE_FILE (Not a temporay file) includes menu items from multiple menus.
 #    Uses: None.
 # Outputs: None.
@@ -5124,47 +5132,42 @@ f_menu_main_TEMPLATE () {
 #          So rather than having a separate file for the data of each menu, this allows you to have data for multiple menus in a single file.
 #          This may replace f_menu_sub_TEMPLATE.
 #
-#       The run-time script file, "ice_cream.sh" may also contain the data
-#       for both Main menu and sub-menus if it follows the same format below.
-#
-#       If you have a lot of menus, you may want to have all the menu data
-#       in a separate library file.
-#
-#       Example:
-#       The file "All_Ice_Cream_Menus.lib" contains the data for both
-#       Main menu: "Tasty Ice Cream Menu"
-#        Sub-menu: "Ice Cream Toppings Menu".
-#
-#       Each menu (Main Menu and sub-menus) must have Header and Tail strings.
-#       Main menu header/tail strings:
-#       Header string: "Start Listing Tasty Ice Cream Menu" (with spaces " ")
-#         Tail string: "End Listing Tasty Ice Cream Menu"
-#       must be used in the header/tail string sentences of the menu item data.
-#
-#       Sub-menu header/tail strings:
-#       Header string: "Start Listing Ice Cream Toppings Menu"
-#         Tail string: "End Listing Ice Cream Toppings Menu"
-#
-#       ARRAY_SOURCE_FILE="All_Ice_Cream_Menus.lib"
-#
-#       Listing of $ARRAY_SOURCE_FILE (All_Ice_Cream_Menus.lib)
-#               which includes menu item data:
-#
-#       Start Listing Tasty Ice Cream Menu (Required header, do not delete).
-#           Data for Menu item 1
-#           Data for Menu item 2
-#           Data for Menu item 3
-#       End  Listing Tasty Ice Cream Menu (Required line, do not delete).
-#
-#       Start Listing Ice Cream Toppings Menu (Required header, do not delete).
-#           Data for Menu item 1
-#           Data for Menu item 2
-#           Data for Menu item 3
-#       End Listing Ice Cream Toppings Menu (Required line, do not delete).
-#
 # Dependencies: f_menu_make, f_menu_arrays, f_create_show_menu.
 #
 f_create_a_menu () {
+      #
+      # The MENU_TITLE must match the strings in the ARRAY_SOURCE_FILE.
+      #
+      #  Example:
+      #   The run-time script file, "ice_cream.sh" may also contain the data
+      #   for both Main menu and sub-menus.
+      #
+      #     MENU_TITLE="All_Ice_Cream_Menu"
+      #     ARRAY_SOURCE_FILE="ice_cream.sh"
+      #
+      #   If you have a lot of menus, you may want to have all the menu data
+      #   for both Main menu and sub-menus in a separate library file,
+      #   "all_ice_cream_menus.lib".
+      #
+      #     MENU_TITLE="All_Ice_Cream_Menu"
+      #     ARRAY_SOURCE_FILE="all_ice_cream_menus.lib"
+      #
+      # Format for $ARRAY_SOURCE_FILE: ("ice_cream.sh" or "all_ice_cream_menus.lib")
+      #
+      #  Listing of $ARRAY_SOURCE_FILE ("ice_cream.sh" or "all_ice_cream_menus.lib")
+      #          which includes menu item data:
+      #
+      #  Start Listing Tasty Ice Cream Menu (Required header, do not delete).
+      #      Data for Menu item 1
+      #      Data for Menu item 2
+      #      Data for Menu item 3
+      #  End Listing Tasty Ice Cream Menu (Required line, do not delete).
+      #
+      #  Start Listing Ice Cream Toppings Menu (Required header, do not delete).
+      #      Data for Menu item 1
+      #      Data for Menu item 2
+      #      Data for Menu item 3
+      #  End Listing Ice Cream Toppings Menu (Required line, do not delete).
       #
       # Create $ARRAY_FILE from Array Source File.
       f_menu_make $1 $3 $5 $6
@@ -5218,9 +5221,13 @@ f_create_a_menu () {
 #    Uses: None.
 # Outputs: None.
 #
-# Summary: Display sub-menu. This may replace f_menu_sub_TEMPLATE.
+# Summary: Display sub-menu.
+#          Prerequisite is that a temporary file $5 containing the data from the ARRAY_SOURCE_FILE has already been created.
+#          So these lines in the ARRAY_SOURCE_FILE containing the menu item data have already been cut-pasted into a separate temporary file $5.
+#          ARRAY_SOURCE_FILE General Format:
+#          <#@@> <Menu Option> <#@@> <Description of Menu Option> <#@@> <Corresponding function or action or command>
 #
-# Dependencies: f_menu_make, f_menu_arrays, f_create_show_menu.
+# Dependencies: f_menu_arrays, f_create_show_menu.
 #
 f_create_menu () {
       #
