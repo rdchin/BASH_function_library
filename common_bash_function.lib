@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2024-02-20 22:48"
+VERSION="2024-02-22 15:32"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -76,6 +76,13 @@ VERSION="2024-02-20 22:48"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2024-02-22 *f_check_version_TEMPLATE now inherits variables rather than
+##             setting SERVER_DIR, MP_DIR, and LOCAL_REPO_DIR so that the
+##             programmer does not have to set these variables in both the
+##             main script and also in f_check_function.
+##            *f_version_compare improved error message to include
+##             instructions on how to resolve the error.
 ##
 ## 2024-02-20 *f_msg_txt_file_ok bug fixed where title was not displayed.
 ##
@@ -598,7 +605,7 @@ f_display_common_TEMPLATE () {
 # |        Function f_check_version_TEMPLATE        |
 # +----------------------------------------+
 #
-#     Rev: 2024-01-16
+#     Rev: 2024-02-22
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - [OPTIONAL] File name to compare.
 #          $3 - [OPTIONAL] to control display of messages and interactive user questions.
@@ -635,11 +642,15 @@ f_check_version_TEMPLATE () {
       #
       # LAN File Server shared directory.
       # SERVER_DIR="[FILE_SERVER_DIRECTORY_NAME_GOES_HERE]"
+      if [ -z "$SERVER_DIR" ] ; then
         SERVER_DIR="//file_server/public"
+      fi
       #
       # Local PC mount-point directory.
       # MP_DIR="[LOCAL_MOUNT-POINT_DIRECTORY_NAME_GOES_HERE]"
+      if [ -z "$MP_DIR" ] ; then
         MP_DIR="/mnt/file_server/public"
+      fi
       #
       # Local PC mount-point with LAN File Server Local Repository full directory path.
       # Example:
@@ -649,7 +660,9 @@ f_check_version_TEMPLATE () {
       #
       # Local PC mount-point with LAN File Server Local Repository full directory path.
       # LOCAL_REPO_DIR="$MP_DIR/[DIRECTORY_PATH_TO_LOCAL_REPOSITORY]"
+      if [ -z "$LOCAL_REPO_DIR" ] ; then
         LOCAL_REPO_DIR="$MP_DIR/scripts/BASH/Repository"
+      fi
       #
       # Local PC file to be compared.
       if [ $# -eq 2 ] ; then
@@ -708,7 +721,7 @@ f_check_version_TEMPLATE () {
 # |       Function f_version_compare       |
 # +----------------------------------------+
 #
-#     Rev: 2024-01-16
+#     Rev: 2024-02-22
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - Samba File server Directory
 #          $3 - Local Mount Point (Directory)
@@ -739,13 +752,32 @@ f_version_compare () {
       #                            to: 2020-12-31 23:59           (without quotes within string).
       VER_LOCAL=$(echo $6 | sed 's/VERSION=//' | sed 's/\"//g')
       #
+      TEMP_FILE2=$TEMP_FILE"_temp2.txt"
+      #
       # Initialize $ANS to "No" answer for f_yn_question "Copy from Repository?"
       ANS=1
       #
       # Does the Local Mount Point directory exist?
       if [ ! -e "$3" ] ; then
          # No, directory is missing.
-         f_message $1 "NOK" "Error missing directory" "Missing local mountpoint directory\n$3." 2
+         echo "Cannot download the latest version from file server directory:" > $TEMP_FILE
+         echo "$4" >> $TEMP_FILE
+         echo "which should be mounted on this PC at mount-point directory:" >> $TEMP_FILE
+         echo "$3" >> $TEMP_FILE
+         echo >> $TEMP_FILE
+         echo "To resolve this issue:" >> $TEMP_FILE
+         echo "1. The mount-point directory needs to be created using the command:" >> $TEMP_FILE
+         echo "   sudo mkdir -p $3" >> $TEMP_FILE
+         echo "   (or whatever directory you choose to create)." >> $TEMP_FILE
+         echo "2. After creating the mount-point directory, you need to change" >> $TEMP_FILE
+         echo "   the variables SERVER_DIR, MP_DIR, LOCAL_REPO_DIR" >> $TEMP_FILE
+         echo "   in this script and in f_check_version." >> $TEMP_FILE
+         echo "3. When this script is re-started, it will automatically mount" >> $TEMP_FILE
+         echo "   the file server share-point (SERVER_DIR):" >> $TEMP_FILE
+         echo "   $2" >> $TEMP_FILE
+         echo "   onto the local mount-point directory (MP_DIR):" >> $TEMP_FILE
+         echo "   $3" >> $TEMP_FILE
+         f_message $1 "OK" "Missing mount-point directory on this PC" $TEMP_FILE
       else
          # Yes, directory is OK so mount the file server directory.
          f_mount $1 $2 $3
@@ -796,15 +828,55 @@ f_version_compare () {
                #
             else
                f_message $1 "OK" "Error Missing Local Repository File to compare" "Failed to access file to compare \"$5\" in Local Repository. Cannot compare script versions."
+               #
+               echo "Cannot download the latest version from file server directory:" > $TEMP_FILE
+               echo "$4" >> $TEMP_FILE
+               echo "which should be mounted on this PC at mount-point directory:" >> $TEMP_FILE
+               echo "$3" >> $TEMP_FILE
+               echo >> $TEMP_FILE
+               echo "To resolve this issue:" >> $TEMP_FILE
+               echo "1. Make sure that the mount-point directory exists:" >> $TEMP_FILE
+               echo "   $3" >> $TEMP_FILE
+               echo "   (or whatever directory you choose to create)." >> $TEMP_FILE
+               echo "2. After checking the mount-point directory, you need to change" >> $TEMP_FILE
+               echo "   the variables SERVER_DIR, MP_DIR, LOCAL_REPO_DIR" >> $TEMP_FILE
+               echo "   in this script and in f_check_version." >> $TEMP_FILE
+               echo "3. When this script is re-started, it will automatically mount" >> $TEMP_FILE
+               echo "   the file server share-point (SERVER_DIR):" >> $TEMP_FILE
+               echo "   $2" >> $TEMP_FILE
+               echo "   onto the local mount-point directory (MP_DIR):" >> $TEMP_FILE
+               echo "   $3" >> $TEMP_FILE
+               f_message $1 "OK" "Error getting latest version" $TEMP_FILE
                ERROR=1
             fi
             #
          else
             f_message $1 "OK" "Error Mounting Local Repository Directory" "Failed to mount Local Repository Directory \"$4\". Cannot compare script versions."
+            #
+            echo "Cannot download the latest version from file server directory:" > $TEMP_FILE
+            echo "$4" >> $TEMP_FILE
+            echo "which should be mounted on this PC at mount-point directory:" >> $TEMP_FILE
+            echo "$3" >> $TEMP_FILE
+            echo >> $TEMP_FILE
+            echo "To resolve this issue:" >> $TEMP_FILE
+            echo "1. Make sure that the mount-point directory exists:" >> $TEMP_FILE
+            echo "   $3" >> $TEMP_FILE
+            echo "   (or whatever directory you choose to create)." >> $TEMP_FILE
+            echo "2. After checking the mount-point directory, you need to change" >> $TEMP_FILE
+            echo "   the variables SERVER_DIR, MP_DIR, LOCAL_REPO_DIR" >> $TEMP_FILE
+            echo "   in this script and in f_check_version." >> $TEMP_FILE
+            echo "3. When this script is re-started, it will automatically mount" >> $TEMP_FILE
+            echo "   the file server share-point (SERVER_DIR):" >> $TEMP_FILE
+            echo "   $2" >> $TEMP_FILE
+            echo "   onto the local mount-point directory (MP_DIR):" >> $TEMP_FILE
+            echo "   $3" >> $TEMP_FILE
+            f_message $1 "OK" "Error getting latest version" $TEMP_FILE
+
          fi
          #
          # Is an update needed?
          if [ $ERROR -eq 0 ] && [ "$VER_LOCAL" != "$VER_REPO" ]; then
+             # Yes, versions do not match.
              Is "Silent Mode" activated?
             if [ -z "$8" ] ; then
                # "Silent Mode" inactive, display question.
@@ -824,7 +896,12 @@ f_version_compare () {
                while read LINE
                      do
                         echo > $TEMP_FILE
-                        echo "Copying File from Local Repository\n$4/$LINE" >> $TEMP_FILE
+                        #
+                        # Is "Silent Mode" activated?
+                        if [ -z "$8" ] ; then
+                           # "Silent Mode" inactive, display message.
+                           echo "Copying File from Local Repository\n$4/$LINE" >> $TEMP_FILE
+                        fi
                         cp -p "$4"/$LINE . 2>>$TEMP_FILE # Write any error messages to file $TEMP_FILE.
                         ERROR=$?
                         #
@@ -833,17 +910,22 @@ f_version_compare () {
                         let ERROR=$ERROR+$?
                         #
                         if [ $ERROR -ne 0 ] ; then
+                           cp $TEMP_FILE $TEMP_FILE2
                            f_message $1 "OK" "Error Copying File from Local Repository" "$TEMP_FILE"
                            ERROR2=1
                         else
-                           f_message $1 "NOK" "Copying File from Local Repository" $TEMP_FILE 2
+                           # Is "Silent Mode" activated?
+                           if [ -z "$8" ] ; then
+                              # "Silent Mode" inactive, display message.
+                              f_message $1 "NOK" "Copying File from Local Repository" $TEMP_FILE 2
+                           fi
                         fi
                         #
                        done < $7
                unset LINE
                #
                if [ $ERROR2 -ne 0 ] ; then
-                  f_message $1 "OK" "Error occurred" $TEMP_FILE
+                  f_message $1 "OK" "Error occurred" $TEMP_FILE2
                   ERROR=1
                else
                   ERROR=0
@@ -855,12 +937,17 @@ f_version_compare () {
                fi
             fi
          else
-            # Is "Silent Mode" activated?
-            if [ -z "$8" ] ; then
-               # "Silent Mode" inactive, display question.
+            # If no mounting error and versions match and "Silent Mode" not activated
+            if [ $ERROR -eq 0 ] && [ -z "$8" ] ; then
+               # "Silent Mode" inactive, display messaoge.
                f_message $1 "NOK" "Software Not Updated" "Software is at the latest version. No update needed."
             fi
          fi
+      fi
+      @
+      # Delete temporary file.
+      if [ -e $TEMP_FILE2 ] ; then
+         rm $TEMP_FILE2
       fi
       #
       unset LINE VER VER_MSG VERSION_RELEASE ERROR2
@@ -2416,6 +2503,7 @@ f_select_dir_fzf () {
 #                          0              - Select multiple directories.
 #                          1              - Select only one directory.
 #          THIS_DIR.
+#          TEMP_FILE2 - Temporary file needs to be defined beforehand.
 #    Uses: None.
 # Outputs: TEMP_FILE2 - Temporary file contains a list of file names.
 #                       Example: cat $TEMP_FILE2
