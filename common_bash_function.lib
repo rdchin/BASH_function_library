@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2024-02-22 23:10"
+VERSION="2024-02-23 21:23"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -645,13 +645,13 @@ f_check_version_TEMPLATE () {
       # LAN File Server shared directory.
       # SERVER_DIR="[FILE_SERVER_DIRECTORY_NAME_GOES_HERE]"
       if [ -z "$SERVER_DIR" ] ; then
-        SERVER_DIR="//file_server/public"
+        SERVER_DIR="//file_server/files"
       fi
       #
       # Local PC mount-point directory.
       # MP_DIR="[LOCAL_MOUNT-POINT_DIRECTORY_NAME_GOES_HERE]"
       if [ -z "$MP_DIR" ] ; then
-        MP_DIR="/mnt/file_server/public"
+        MP_DIR="/mnt/file_server/files"
       fi
       #
       # Local PC mount-point with LAN File Server Local Repository full directory path.
@@ -663,7 +663,7 @@ f_check_version_TEMPLATE () {
       # Local PC mount-point with LAN File Server Local Repository full directory path.
       # LOCAL_REPO_DIR="$MP_DIR/[DIRECTORY_PATH_TO_LOCAL_REPOSITORY]"
       if [ -z "$LOCAL_REPO_DIR" ] ; then
-        LOCAL_REPO_DIR="$MP_DIR/scripts/BASH/Repository"
+        LOCAL_REPO_DIR="$MP_DIR/Repository"
       fi
       #
       # Local PC file to be compared.
@@ -1054,7 +1054,7 @@ f_version_compare_4 () {
 # |         Function f_script_path         |
 # +----------------------------------------+
 #
-#     Rev: 2020-03-07
+#     Rev: 2024-02-23
 #  Inputs: $BASH_SOURCE (System variable).
 #    Uses: None.
 # Outputs: SCRIPT_PATH, THIS_DIR.
@@ -1083,6 +1083,7 @@ f_script_path () {
 #
 #     Rev: 2021-03-28
 #  Inputs: $1 - Argument
+#             [Directory Name] or [File Name]
 #             [ --help ] [ -? ]
 #             [ --about ]
 #             [ --version ] [ --ver ] [ -v ] [--about ]
@@ -1092,7 +1093,7 @@ f_script_path () {
 #          $2=Argument
 #             [] [ text ] [ dialog ] [ whiptail ]
 #    Uses: None.
-# Outputs: GUI, ERROR.
+# Outputs: GUI, ERROR, TARGET_DIR, TARGET_FILE.
 #
 # Summary: Validate and process provided arguments.
 #
