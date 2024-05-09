@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2024-02-25 00:34"
+VERSION="2024-04-20 15:12"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -76,6 +76,15 @@ VERSION="2024-02-25 00:34"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2024-04-20 *f_show_mount_points improved wording of message for clarity.
+##
+## 2024-04-12 *f_show_mount_points changed to preferably use "findmnt"
+##             instead of "df" because of false error message
+##             in Ubuntu and Linux Mint:
+##             "df: /run/user/1000/doc: Operation not permitted"
+##             Apparently this is a bug in Flatpak according to what
+##             other nerds can deduce.
 ##
 ## 2024-02-25 *f_menu_make added debugging message if menu data is bad.
 ##
@@ -1760,7 +1769,7 @@ f_help_message () {
 #
 # Summary: Display the mount-points and local devices.
 #
-# Dependencies: df, grep, lsblk, f_message.
+# Dependencies: df, grep, lsblk.
 #
 f_show_mount_points () {
       #
@@ -1784,56 +1793,22 @@ f_show_mount_points () {
       #
       # Example:
       # Application "findmnt" will display a tree-like format of the file systems.
-      # Below will include both the mounted native disk along with the mounted
-      # block devices (USB or external drives).
-      # findmnt --all --output=source,size,avail,target | head -n 2
+      # Below will include both the mounted native disk along with
+      # the mounted block devices (USB or external drives).
       # findmnt --all --output=source,size,avail,target | grep /media/
       #
       # Application "df" will display the same information but without the tree.
       # df --all --human-readable --output=source,size,avail,target | head -n 1
       # df --all --human-readable --output=source,size,avail,target | grep /media/
       #
-      # Test if this version of "df" has these OPTIONS.
-      df --all --human-readable --output=source,avail,target >/dev/null 2>&1
-      ERROR=$?
+      # Prefer "findmnt" instead of "df" since "df" may result in
+      # false error message "df: /run/user/1000/doc: Operation not permitted"
       #
-      if [ $ERROR -eq 1 ] ; then
-         # Older version of "df" or nothing mounted, so use df with minimal OPTIONS.
-         # Use traditional display of data.
-         # Get df column header line.
-         DF_CMD_HEAD_1="df --all --human-readable | head -n 1 >>$TEMP_FILE  2>&1"
-         #
-         # Get /mnt/ file server mount-points
-         DF_CMD_1="df --all --human-readable | grep "//" >>$TEMP_FILE 2>&1"
-         #
-         # Now display information for local block devices i.e. USB drives, etc.
-         # Get df column header line.
-         DF_CMD_HEAD_2="df --all --human-readable | head -n 1 >>$TEMP_FILE  2>&1"
-         #
-         # Get /media/ local devices mount-points.
-         DF_CMD_2="df --all --human-readable | grep -e /media/ -e /md >>$TEMP_FILE 2>&1"
-      else
-         # Newer version of "df" in use.
-         # Use simplifed display of data.
-         # Get df column header line.
-         DF_CMD_HEAD_1="df --all --human-readable --output=source,size,avail,target | head -n 1 >>$TEMP_FILE"
-         #
-         # Get /mnt/ file server mount-points
-         DF_CMD_1="df --all --human-readable --output=source,size,avail,target | grep /mnt/ >>$TEMP_FILE"
-         #
-         # Now display information for local block devices i.e. USB drives, etc.
-         # Get df column header line.
-         DF_CMD_HEAD_2="df --all --human-readable --output=source,size,used,avail,target | head -n 1 >>$TEMP_FILE"
-         #
-         # Get /media/ local devices mount-points.
-         DF_CMD_2="df --all --human-readable --output=source,size,used,avail,target | grep -e /media/ -e /md >>$TEMP_FILE"
-      fi
-      #
-      # Get df column header line.
-      eval $DF_CMD_HEAD_1
+      # Get column header line.
+      echo "REMOTE FILESYSTEM          SIZE   USED  USE% AVAIL MOUNTED ON" >>$TEMP_FILE
       #
       # Get /mnt/ file server mount-points
-      eval $DF_CMD_1
+      findmnt --all --df --output=source,size,used,use%,avail,target | grep /mnt/ >>$TEMP_FILE
       ERROR=$?
       #
       # Are there any file server share-points mounted on /mnt/?
@@ -1845,45 +1820,72 @@ f_show_mount_points () {
          echo >>$TEMP_FILE
       else
          # No, remote file server share-points not mounted.
-         echo "N/A             N/A   N/A  No remote server mounted" >>$TEMP_FILE
+         echo "N/A                        N/A    N/A   No remote server mounted" >>$TEMP_FILE
          echo >>$TEMP_FILE
       fi
       #
       echo "----------------------------------------------------------------------" >>$TEMP_FILE
-      echo "Display status of any mounted local block devices i.e. USB drives etc." >>$TEMP_FILE
+      echo "Display status of any MOUNTED local block devices i.e. USB drives etc." >>$TEMP_FILE
       echo "----------------------------------------------------------------------" >>$TEMP_FILE
       # Now display information for local block devices i.e. USB drives, etc.
       # Get df column header line.
-      eval $DF_CMD_HEAD_2
+      echo "LOCAL BLOCK DEVICES      SIZE   USED    USE% AVAIL MOUNTED ON" >>$TEMP_FILE
       #
       # Get /media/ local devices mount-points.
-      eval $DF_CMD_2
+      findmnt --all --df --output=source,size,used,use%,avail,target | grep -e /media/ -e /md >>$TEMP_FILE
       ERROR=$?
       #
       # Are there any local block devices mounted on /media/?
       if [ $ERROR -eq 1 ] ; then
          # No, local block devices not mounted.
-         echo "N/A             N/A   N/A  No local block devices mounted" >>$TEMP_FILE
+         echo "N/A                      N/A    N/A     No local block devices mounted" >>$TEMP_FILE
          echo >>$TEMP_FILE
       fi
       #
       echo >>$TEMP_FILE
-      echo "------------------------------------------------------------" >>$TEMP_FILE
-      echo "List all recognized local block devices i.e. USB drives etc." >>$TEMP_FILE
-      echo "------------------------------------------------------------" >>$TEMP_FILE
+      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
+      echo "List all (mounted/unmounted) removable local block devices i.e. USB drives etc." >>$TEMP_FILE
+      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
       #
       # Print /dev/sd[a-z][1-9] i.e. "/dev/sdb1" block devices HDDs, SSDs, USB drives
       # using the lsblk command with only necessary columns displayed.
       #
       # Print column header line
       # awk 'BEGIN { print "DEVICE  SIZE   FSTYPE             MOUNTPOINT" }' >>$TEMP_FILE
-      echo "NAME    SIZE   USED     USE%   AVAIL    FSTYPE   MOUNTPOINT" >>$TEMP_FILE
+      echo " NAME   SIZE      USED     USE%   AVAIL    FSTYPE   MOUNTPOINT" >>$TEMP_FILE
+      #
+      # Create $TEMP_FILE2.
+      TEMP_FILE2=$TEMP_FILE"_2.txt"
+      if [ -e $TEMP_FILE2 ] ; then
+         rm $TEMP_FILE2
+      fi
       #
       # Print filtered results of command lsblk.
       # Use --tree to relate RAID md devices to RAID member drive devices.
       #
       # Easier to read information on RAID devices.
-      lsblk -fs --tree --output NAME,SIZE,FSUSED,FSUSE%,FSAVAIL,FSTYPE,MOUNTPOINT | grep -e sd[a-z][1-9] -e md | awk  '{ printf "%-7s %-6s %-8s %-6s %-8s %-8s %s\n", $1,$2,$3,$4,$5,$6,$7 }' >>$TEMP_FILE
+      # Include --output HOTPLUG to indicate USB devices.
+      lsblk -fs --tree --output HOTPLUG,NAME,SIZE,FSUSED,FSUSE%,FSAVAIL,FSTYPE,MOUNTPOINT | grep -e "sd[a-z][1-9]" -e md | awk  '{ printf "%-1s %-7s %-6s %-8s %-6s %-8s %-8s %s\n", $1,$2,$3,$4,$5,$6,$7,$8 }' >>$TEMP_FILE2
+      #
+      # Create $TEMP_FILE3.
+      TEMP_FILE3=$TEMP_FILE"_3.txt"
+      if [ -e $TEMP_FILE3 ] ; then
+         rm $TEMP_FILE3
+      fi
+      #
+      # Filter out non-USB devices.
+      while read LINE
+            do
+                # Is the $LINE a USB device? The first column "HOTPLUG" is 1.
+                if [ $(echo $LINE | awk '{print $1}') -eq 1 ] ; then
+                   # Yes, so print the $LINE without the first column.
+                   echo $LINE | awk '{$1=""; printf "%-0s %-6s %-9s %-8s %-6s %-8s %-8s %s\n", $1,$2,$3,$4,$5,$6,$7,$8,$9 }' >> $TEMP_FILE3
+
+                fi
+            done < $TEMP_FILE2
+      #
+      # Rename $TEMP_FILE2.
+      cat $TEMP_FILE3 >> $TEMP_FILE
       #
       # Display results.
       case $2 in
@@ -1895,13 +1897,26 @@ f_show_mount_points () {
              ;;
       esac
       #
+      # Blank the screen.
+      clear
+      #
       # Delete temporary file.
       if [ -r $TEMP_FILE ] ; then
          rm $TEMP_FILE
       fi
       #
+      # Delete temporary file.
+      if [ -r $TEMP_FILE2 ] ; then
+         rm $TEMP_FILE2
+      fi
+      #
+      # Delete temporary file.
+      if [ -r $TEMP_FILE3 ] ; then
+         rm $TEMP_FILE3
+      fi
+      #
       # Throw out these variables.
-      unset X Y ERROR
+      unset X Y ERROR FM_CMD_1 FM_CMD_2 FM_CMD_HEAD_1 FM_CMD_HEAD_2
       #
 }  # End of function f_show_mount_points.
 #
