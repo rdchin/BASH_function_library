@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2024-04-20 15:12"
+VERSION="2024-06-26 14:36"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -76,6 +76,29 @@ VERSION="2024-04-20 15:12"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2024-06-26 *f_select_dir bug fixed which only affected $GUI="text" or
+##             $GUI="whiptail" where the function f_select_dir_fzf was
+##             called twice instead of only once.
+##            *f_select_dir
+##             f_select_dir_fzf
+##             f_select_file
+##             bug fixed which only affected $GUI="text" or $GUI="whiptail"
+##             where any selection was rejected due to not resetting the
+##             $ERROR variable to $ERROR=0 after exiting the while-loop.3       
+##            *f_version_compare
+##             f_version_compare_2
+##             f_version_compare_3
+##             f_version_compare_4
+##             Improved user messages when error mounting Local Repository.
+##
+## 2024-06-13 *f_text_editor changed list of TUI and GUI apps.
+##
+## 2024-06-08 *f_version_compare, f_version_compare_2, f_version_compare_3
+##             f_version_compare_4 corrected dependency comments.
+##
+## 2024-05-18 *f_message improve warning comment that $TEMP_FILE will be
+##             deleted by f_message.
 ##
 ## 2024-04-20 *f_show_mount_points improved wording of message for clarity.
 ##
@@ -736,7 +759,7 @@ f_check_version_TEMPLATE () {
 # |       Function f_version_compare       |
 # +----------------------------------------+
 #
-#     Rev: 2024-02-22
+#     Rev: 2024-06-26
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - Samba File server Directory ($SERVER_DIR).
 #          $3 - Local Mount Point Directory ($MP_DIR).
@@ -754,7 +777,7 @@ f_check_version_TEMPLATE () {
 #          version $6 of file $5 in the Local (LAN, non-web) repository
 #          directory $4.
 #
-# Dependencies: f_message, f_mount, f_yn_question.
+# Dependencies: f_version_compare_2, f_message.
 #
 f_version_compare () {
       #
@@ -769,18 +792,18 @@ f_version_compare () {
       #
       VER_LOCAL=$(echo "$6" | sed 's/VERSION=//' | sed 's/\"//g')
       TEMP_FILE2=$TEMP_FILE"_temp2.txt"
-      ERROR=0
       #
       # Initialize $ANS to "No" answer for f_yn_question "Copy from Repository?"
       ANS=1
       #
       # Does the Local Mount Point directory exist?
       if [ -e "$3" ] ; then
-         # Yes, directory is OK so mount the file server directory.
+         # Yes, the Local Mount Point directory is exists.
+         ERROR=0
          f_version_compare_2 "$1" "$2" "$3" "$4" "$5" "$VER_LOCAL" "$7" "$8"
       else
+         # No, the Local Mount Point directory is missing.
          ERROR=1
-         # No, directory is missing.
          echo "Cannot download the latest version from server directory (LOCAL_REPO_DIR):" > $TEMP_FILE
          echo "$4" >> $TEMP_FILE
          echo "which should be mounted on this PC at mount-point directory (MP_DIR):" >> $TEMP_FILE
@@ -798,7 +821,7 @@ f_version_compare () {
          echo "   $2" >> $TEMP_FILE
          echo "   onto the local mount-point directory (MP_DIR):" >> $TEMP_FILE
          echo "   $3" >> $TEMP_FILE
-         f_message $1 "OK" "Missing mount-point directory on this PC" $TEMP_FILE
+         f_message $1 "OK" "Error Mounting Local Repository Directory" "Failed to mount Local Repository Directory \"$4\". Cannot compare script versions."
       fi
       #
       # Delete temporary file.
@@ -814,7 +837,7 @@ f_version_compare () {
 # |      Function f_version_compare_2      |
 # +----------------------------------------+
 #
-#     Rev: 2024-02-22
+#     Rev: 2024-06-26
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - Samba File server Directory ($SERVER_DIR).
 #          $3 - Local Mount Point Directory ($MP_DIR).
@@ -825,6 +848,7 @@ f_version_compare () {
 #          $8 - [OPTIONAL] to control display of messages and interactive user questions.
 #                          null (default) - Display error and status messages and interactive user questions.
 #                          1              - Display error messages only (Silent mode).
+#          ERROR.
 #    Uses: LINE, VER, VER_MSG, VERSION_RELEASE, ERROR2.
 # Outputs: ERROR, ANS.
 #
@@ -833,46 +857,13 @@ f_version_compare () {
 #          Try mounting MP_DIR and if sucessful, then call function
 #          f_version_compare_3 and f_version_compare_4.
 #
-# Dependencies: f_message, f_mount, f_yn_question.
+# Dependencies: f_version_compare_3, f_version_compare_4, f_message, f_yn_question.
 #
 f_version_compare_2 () {
       #
-      # Yes, directory is OK so mount the file server directory.
-      #f_mount $1 $2 $3
+      f_version_compare_3 "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"
       #
-      # Were there any errors when mounting?
-      if [ $ERROR -eq 0 ] ; then
-         # Mounting OK, file server directory is mounted.
-         #
-         # Is the Repository directory correctly specified?
-         f_version_compare_3 "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"
-         #
-      else
-         # Yes, errors mounting file server directory.
-         ERROR=1
-         f_message $1 "OK" "Error Mounting Local Repository Directory" "Failed to mount Local Repository Directory \"$4\". Cannot compare script versions."
-         #
-         echo "Cannot download the latest version from server directory (LOCAL_REPO_DIR):" > $TEMP_FILE
-         echo "$4" >> $TEMP_FILE
-         echo "which should be mounted on this PC at mount-point directory (MP_DIR):" >> $TEMP_FILE
-         echo "$3" >> $TEMP_FILE
-         echo >> $TEMP_FILE
-         echo "To resolve this issue:" >> $TEMP_FILE
-         echo "1. Make sure that the mount-point directory (MP_DIR) exists:" >> $TEMP_FILE
-         echo "   $3" >> $TEMP_FILE
-         echo "   (or whatever directory you choose to create)." >> $TEMP_FILE
-         echo "2. After creating the mount-point directory (MP_DIR), you need to change" >> $TEMP_FILE
-         echo "   the variables SERVER_DIR, MP_DIR, LOCAL_REPO_DIR" >> $TEMP_FILE
-         echo "   in this script and in f_check_version." >> $TEMP_FILE
-         echo "3. When this script is re-started, it will automatically mount" >> $TEMP_FILE
-         echo "   the file server share-point (SERVER_DIR):" >> $TEMP_FILE
-         echo "   $2" >> $TEMP_FILE
-         echo "   onto the local mount-point directory (MP_DIR):" >> $TEMP_FILE
-         echo "   $3" >> $TEMP_FILE
-         f_message $1 "OK" "Error getting latest version" $TEMP_FILE
-      fi
-         #
-         # Is an update needed?
+      # Is an update needed?
       if [ $ERROR -eq 0 ] && [ "$VER_LOCAL" != "$VER_REPO" ]; then
          # Yes, versions do not match.
          # Is "Silent Mode" activated?
@@ -916,7 +907,7 @@ f_version_compare_2 () {
 # |      Function f_version_compare_3      |
 # +----------------------------------------+
 #
-#     Rev: 2024-02-22
+#     Rev: 2024-06-26
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - Samba File server Directory ($SERVER_DIR).
 #          $3 - Local Mount Point Directory ($MP_DIR).
@@ -934,7 +925,7 @@ f_version_compare_2 () {
 #          MP_DIR. Now confirm that the Repository directory is correctly
 #          specified.
 #
-# Dependencies: f_message, f_mount, f_yn_question.
+# Dependencies: f_message.
 #
 f_version_compare_3 () {
       #
@@ -999,7 +990,7 @@ f_version_compare_3 () {
          echo "   $2" >> $TEMP_FILE
          echo "   onto the local mount-point directory (MP_DIR):" >> $TEMP_FILE
          echo "   $3" >> $TEMP_FILE
-         f_message $1 "OK" "Error getting latest version" $TEMP_FILE
+         f_message $1 "OK" "Error Mounting Local Repository Directory" "Failed to mount Local Repository Directory \"$4\". Cannot compare script versions."
       fi
       #
 }  # End of function f_version_compare_3.
@@ -1008,7 +999,7 @@ f_version_compare_3 () {
 # |      Function f_version_compare_4      |
 # +----------------------------------------+
 #
-#     Rev: 2024-02-22
+#     Rev: 2024-06-26
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - Samba File server Directory ($SERVER_DIR).
 #          $3 - Local Mount Point Directory ($MP_DIR).
@@ -1026,7 +1017,7 @@ f_version_compare_3 () {
 #          version $6 of file $5 in the Local (LAN, non-web) repository
 #          directory $4 .
 #
-# Dependencies: f_message, f_mount, f_yn_question.
+# Dependencies: f_message.
 #
 f_version_compare_4 () {
       #
@@ -1395,7 +1386,7 @@ f_test_connect_TEMPLATE () {
 #     Rev: 2021-03-07
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - Network name of server, IP address, or web site address (URL).
-#          $3 - Pause n seconds to read message (Optional).
+#          $3 - [OPTIONAL] Pause n seconds to read message.
 #    Uses: None.
 # Outputs: ERROR.
 #
@@ -1798,7 +1789,6 @@ f_show_mount_points () {
       # findmnt --all --output=source,size,avail,target | grep /media/
       #
       # Application "df" will display the same information but without the tree.
-      # df --all --human-readable --output=source,size,avail,target | head -n 1
       # df --all --human-readable --output=source,size,avail,target | grep /media/
       #
       # Prefer "findmnt" instead of "df" since "df" may result in
@@ -1865,7 +1855,7 @@ f_show_mount_points () {
       #
       # Easier to read information on RAID devices.
       # Include --output HOTPLUG to indicate USB devices.
-      lsblk -fs --tree --output HOTPLUG,NAME,SIZE,FSUSED,FSUSE%,FSAVAIL,FSTYPE,MOUNTPOINT | grep -e "sd[a-z][1-9]" -e md | awk  '{ printf "%-1s %-7s %-6s %-8s %-6s %-8s %-8s %s\n", $1,$2,$3,$4,$5,$6,$7,$8 }' >>$TEMP_FILE2
+      lsblk -fs --tree --output HOTPLUG,NAME,SIZE,FSUSED,FSUSE%,FSAVAIL,FSTYPE,MOUNTPOINT,VENDOR,REV,MODEL | grep -e "sd[a-z][1-9]" -e md | awk  '{ printf "%-1s %-7s %-6s %-8s %-6s %-8s %-4s %-6s %-20s %s\n", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 }' >>$TEMP_FILE2
       #
       # Create $TEMP_FILE3.
       TEMP_FILE3=$TEMP_FILE"_3.txt"
@@ -2053,7 +2043,7 @@ f_file_manager () {
 # |         Function f_text_editor         |
 # +----------------------------------------+
 #
-#     Rev: 2022-04-08
+#     Rev: 2024-06-13
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
 #          $2 - String "[Description of] File(s)"
 #                  (String must either begin and end with double-quotes
@@ -2129,11 +2119,11 @@ f_text_editor () {
          if [ -z $XWIN ] ; then
             # Yes, a pure CLI environment so use only CLI file manager apps.
             # List file managers in preferred order with most preferred first.
-            TEXT_EDITOR_APPS="nano jed joe emacs ed vim vi"
+            TEXT_EDITOR_APPS="nano jed joe emacs micro ed vim vi"
          else
             # No, it is an X-Window environment so can use both X-Window and CLI file manager apps.
             # List file managers in preferred order with most preferred first.
-            TEXT_EDITOR_APPS="xed gedit kedit pluma mousepad nano"
+            TEXT_EDITOR_APPS="xed gedit kedit pluma mousepad"
          fi
          #
          for TEXT_EDITOR in $TEXT_EDITOR_APPS
@@ -2456,6 +2446,8 @@ f_select_dir () {
                           f_select_dir_fzf $1 "$DIR_DESCR" "$3" "$4"
                           #
                        done
+                 # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
+                 ERROR=0
               else
                  # No, "fzf" is not installed.
                  #
@@ -2471,11 +2463,11 @@ f_select_dir () {
                  while [ "$ERROR" -eq 0 ]
                        do
                           # The user-entered directory name is whatever is after $3 default parent directory.
-                          f_ask_question $1 "User-entered $DIR_DESCR name" "Enter $DIR_DESCR name(s) with full path:" "$DEFAULT_DIR"
+                          f_ask_question $1 "User-entered $DIR_DESCR name" "Enter $DIR_DESCR name(s) with full path: " "$DEFAULT_DIR"
                           DIR_SELECTED="$ANS"
                           #
                           # Confirm directory selection.
-                          f_select_dir_verify $1 "$DIR_DESCR" "$DIR_SELECTED" $4
+                          f_select_dir_verify $1 "$DIR_DESCR" "$DIR_SELECTED" "$DEFAULT_DIR" $4
                        done
                  #
                  # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
@@ -2586,7 +2578,7 @@ f_select_dir_fzf () {
                      # Yes, final directory selection is made.
                      if [ -n $DIR_SELECTED ] ; then
                         # Verify each file selected $FILE_SELECTED and append to file TEMP_FILE2.
-                        f_select_dir_verify $1 "$2" "$DIR_SELECTED" $3 $4
+                        f_select_dir_verify $1 "$2" "$DIR_SELECTED" "$3" "$4"
                         # Outputs TEMP_FILE2 which has a list of selected file names in a single column.
                         # Outputs ERROR=1 if selecting only 1 directory (not multiple directories).
                      fi
@@ -2596,6 +2588,9 @@ f_select_dir_fzf () {
                   fi
                fi
             done
+      #
+      # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
+      ERROR=0
       #
       # If user pressed [Ctrl-C] or [Esc] key,
       # then ERROR=130 and DIR_SELECTED="".
@@ -2886,6 +2881,10 @@ f_select_file () {
                        f_select_file_verify $1 "$FILE_DESCR" "$DEFAULT_DIR" "$FILE_SELECTED" $4
                        # Outputs TEMP_FILE2 which has a list of file names in a single column.
                     done
+              #
+              # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
+              ERROR=0
+              #
               # Process output of file selection.
               f_select_file_output $1 "$FILE_DESCR" "$DEFAULT_DIR" "$TEMP_FILE2" $4
               # Outputs ANS a string with selected file names separated by spaces.
@@ -2958,6 +2957,9 @@ f_select_file () {
                                 # Outputs TEMP_FILE2 which has a list of selected file names in a single column.
                              fi
                           done
+                    # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
+                    ERROR=0
+                    #
                  fi
               else
                  # No, "fzf" is not installed.
@@ -3464,7 +3466,7 @@ f_ask_question () {
               # Ask question.
               echo "$TITLE"
               echo
-              echo -n -e "$QUESTION ($DEFAULT):"
+              echo -n -e "$QUESTION ($DEFAULT): "
               read ANS
               if [ -z $ANS ] ; then
                  ANS="$DEFAULT"
@@ -3714,10 +3716,10 @@ f_yn_defaults () {
 #               !!!WARNING: ANY TEXT FILE MUST BE A TEMPORARY FILE AND WILL BE DELETED!!!
 #                  (String must either begin and end with double-quotes
 #                  Underscores in text string are not converted to spaces).
-#          $5 - (Optional for functions f_msg_ui/txt_str_nok) Pause for $5 seconds to allow text to be read.
-#               Default is pause for 3 seconds.
-#          $6 - (Optional) Text string to substitute for the "OK" label on the "OK" button.
-#          $7 - (Optional) Text string to substitute for the "Cancel" label on the "Cancel" button.
+#          $5 - [OPTIONAL] for functions f_msg_ui/txt_str_nok) Pause for $5 seconds to allow text to be read.
+#                          Default is pause for 3 seconds.
+#          $6 - [OPTIONAL] Text string to substitute for the "OK" label on the "OK" button.
+#          $7 - [OPTIONAL] Text string to substitute for the "Cancel" label on the "Cancel" button.
 #    Uses: None.
 # Outputs: ERROR.
 #   Usage: 1. f_message $GUI "OK" "Test of String in quotes" "This is a test of \Z6cyan software BASH script.\n\ZnI hope it works!"
@@ -3774,6 +3776,11 @@ f_message () {
               # Is $4 a text file?
               if [ -e "$4" ] ; then
                  # Yes, $4 is a text file.
+                 #
+                 # !!!WARNING: ANY TEXT FILE MUST BE A TEMPORARY FILE AND WILL BE DELETED!!!
+                 #    (String must either begin and end with double-quotes
+                 #    Underscores in text string are not converted to spaces).
+                 #
                  # If $4 is a text file, then calculate number of lines and length
                  # of sentences to calculate height and width of Dialog box.
                  # Calculate dialog/whiptail box dimensions $YBOX, $XBOX.
@@ -3835,10 +3842,15 @@ f_message () {
               # Output result to string $ZNO.
               f_msg_color "$4"
               #
+              # Is $4 a text file?
               if [ -r "$4" ] ; then
-                 # If $4 is a text file.
+                 # Yes, $4 is a text file.
                  #
-                 if [ "$2" = "OK" ] ; then
+                 # !!!WARNING: ANY TEXT FILE MUST BE A TEMPORARY FILE AND WILL BE DELETED!!!
+                 #    (String must either begin and end with double-quotes
+                 #    Underscores in text string are not converted to spaces).
+                 #
+                if [ "$2" = "OK" ] ; then
                     # Display contents of text file using command "less" <q> to quit.
                     f_msg_txt_file_ok $1 $2 "$3" "$4"
                  else
@@ -4005,8 +4017,8 @@ f_msg_ui_file_box_size () {
 #          $4 - Text file.
 #          $5 - Box Height in characters.
 #          $6 - Box Width  in characters.
-#          $7 - (Optional) Text string to substitute for the "OK" label on the "OK" button.
-#          $8 - (Optional) Text string to substitute for the "Cancel" label on the "Cancel" button.
+#          $7 - [OPTIONAL] Text string to substitute for the "OK" label on the "OK" button.
+#          $8 - [OPTIONAL] Text string to substitute for the "Cancel" label on the "Cancel" button.
 #
 #    Uses: None.
 # Outputs: ERROR.
@@ -4281,8 +4293,8 @@ f_msg_ui_str_box_size () {
 #          $4 - Text string or text file.
 #          $5 - Box Height in characters.
 #          $6 - Box Width  in characters.
-#          $7 - (Optional) Text string to substitute for the "OK" label on the "OK" button.
-#          $8 - (Optional) Text string to substitute for the "Cancel" label on the "Cancel" button.
+#          $7 - [OPTIONAL] Text string to substitute for the "OK" label on the "OK" button.
+#          $8 - [OPTIONAL] Text string to substitute for the "Cancel" label on the "Cancel" button.
 #    Uses: None.
 # Outputs: ERROR.
 #
@@ -5535,8 +5547,8 @@ f_menu_make () {
 #                  or must have underscores substituting for spaces).
 #          $4 - MAX_LENGTH.
 #          $5 - MAX_LINES.
-#          $6 - MAX_CHOICE_LENGTH
-#          $7 - TEMP_FILE
+#          $6 - MAX_CHOICE_LENGTH.
+#          $7 - TEMP_FILE.
 #    Uses: GENERATED_FILE, ARRAY_NAME, ARRAY_LEN, XNUM.
 # Outputs: None.
 #
@@ -5585,10 +5597,10 @@ f_create_show_menu () {
 #
 #     Rev: 2022-01-21
 #  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
-#          $2 - File server Directory
-#          $3 - Mount Point (Directory)
-#          $4 - Default User Name (OPTIONAL)
-#    Uses: USERNAME_DEFAULT
+#          $2 - File server Directory.
+#          $3 - Mount Point (Directory).
+#          $4 - [OPTIONAL] Default User Name.
+#    Uses: USERNAME_DEFAULT.
 # Outputs: ERROR, TEMP_FILE.
 #
 # Summary: Mount directory using Samba and CIFS.
