@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# ©2024 Copyright 2024 Robert D. Chin
+# ©2025 Copyright 2025 Robert D. Chin
 # Email: RDevChin@Gmail.com
 #
 # Usage: source common_bash_function.lib
@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2025-04-02 22:00"
+VERSION="2025-06-23 23:43"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -76,6 +76,13 @@ VERSION="2025-04-02 22:00"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2025-06-23 *f_show_mount_points improved data display.
+##
+## 2025-05-12 *f_text_editor added geany app and improved documention.
+##
+## 2025-04-10 *f_text_editor added kwrite, kate apps.
+##            *f_select_dir, f_select_dir_verify improved documentation.
 ##
 ## 2025-04-02 *f_select_file_output deleted code to reset $ERROR since
 ##             function is not used in a while [ $ERROR -eq 0 ] loop.
@@ -1795,10 +1802,13 @@ f_show_mount_points () {
       # Blank the screen.
       clear
       #
+      TEMP_FILE_2=$TEMP_FILE"_2.txt"
+      TEMP_FILE_3=$TEMP_FILE"_3.txt"
+      #
       echo "Local PC is "$HOSTNAME"." >$TEMP_FILE
-      echo "------------------------------------------------------------------" >>$TEMP_FILE
-      echo "Display status of any shared directories from remote file servers." >>$TEMP_FILE
-      echo "------------------------------------------------------------------" >>$TEMP_FILE
+      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
+      echo "Display status of any shared directories from remote file servers."              >>$TEMP_FILE
+      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
       #
       # Note: The applications "df" and "findmnt" can show the same
       #       formatted information using certain optional parameters.
@@ -1823,42 +1833,87 @@ f_show_mount_points () {
       # false error message "df: /run/user/1000/doc: Operation not permitted"
       #
       # Get column header line.
-      echo "REMOTE FILESYSTEM          SIZE   USED  USE% AVAIL MOUNT-POINT" >>$TEMP_FILE
+      echo "REMOTE SIZE USED USE% AVAIL MOUNT-POINT" >$TEMP_FILE_2
       #
       # Get /mnt/ file server mount-points
-      findmnt --all --df --output=source,size,used,use%,avail,target | grep /mnt/ >>$TEMP_FILE
+      findmnt --all --df --output=source,size,used,use%,avail,target | grep /mnt/ >>$TEMP_FILE_2
       ERROR=$?
+      #
+      # Make pretty display.
+      column --table $TEMP_FILE_2 >>$TEMP_FILE
+      #
+      echo >>$TEMP_FILE
+      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
+      echo "Display usernames, shared remote directories, and mount-points."                 >>$TEMP_FILE
+      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
       #
       # Are there any file server share-points mounted on /mnt/?
       if [ $ERROR -eq 0 ] ; then
          # Yes, remote file server share-points mounted.
-         echo >>$TEMP_FILE
+         # Get column header line.
+         echo "USERNAME STATUS REMOTE -- MOUNT-POINT" >$TEMP_FILE_2
+         #
          # Get username, mounted file server share-point, mount-point information from /etc/mtab.
-         grep "//" /etc/mtab | awk -F "," '{ print $1,$5 }' | awk '{ print $5" mounted "$1." on "$2}' >>$TEMP_FILE
-         echo >>$TEMP_FILE
+         #
+         # Username is at different parts in the file "mtab" depending on the Linux distribution.
+         #
+         # In Arch-based distros it is at the 6th comma-delimited piece, in Debian-based distros it is at the 5th comma-delimited piece.
+         # That is the reason that the awk-sed commands below do not use comma-delimiters but insert "^" carot-delimiters to extract the data.
+         #
+         # 1. grep gets mounted share-points:
+         #        [share-point] [mount-point] etc.
+         # 2. 1st awk prints first 2 fields, inserts "^" carot, prints entire line gotten from grep:
+         #        [share-point] [mount-point]^[share-point] [mount-point] cifs rw,relatime,vers=3.1.1,cache=strict,username=[user-name], etc.
+         # 3. sed inserts "^" carot before "username=":
+         #        [share-point] [mount-point]^[share-point] [mount-point] cifs rw,relatime,vers=3.1.1,cache=strict,^username=[user-name], etc.
+         #                 (1st field)       ^carot                                                                ^carot    (3rd field)
+         # 4. 2nd awk prints 1st and 3rd "^" fields:
+         #        [share-point] [mount-point] username=[user-name],etc.
+         # 5. 3rd awk prints only the desired data, ignoring everything else:
+         #        [share-point] [mount-point] username=[user-name]
+         # 6. 4th awk prints data in the desired final format.
+         #        username=[user-name] mounted [share-point] on [mount-point]
+         # 7. column formats data into pretty columns.
+         #
+         grep "//" /etc/mtab | awk '{ print $1" "$2"^"$0 }'| sed 's/username=/\^username=/g' | awk -F "^" '{ print $1" "$3 }' | awk -F "," '{ print $1 }' | awk '{ print $3" mounted "$1" on "$2 }' >> $TEMP_FILE_2
+         echo >>$TEMP_FILE_2
+         #
+         # Make pretty display.
+         column --table $TEMP_FILE_2 >>$TEMP_FILE
       else
          # No, remote file server share-points not mounted.
-         echo "N/A                        N/A    N/A   No remote server mounted" >>$TEMP_FILE
-         echo >>$TEMP_FILE
+         # Get column header line.
+         echo "USERNAME MOUNTED REMOTE ON MOUNT-POINT" >$TEMP_FILE_2
+         echo "N/A N/A N/A  No-Remote-shares on any-Mount-points" >>$TEMP_FILE_2
+         echo >>$TEMP_FILE_2
+         #
+         # Make pretty display.
+         column --table $TEMP_FILE_2 >>$TEMP_FILE
       fi
       #
-      echo "----------------------------------------------------------------------" >>$TEMP_FILE
-      echo "Display status of any MOUNTED local block devices i.e. USB drives etc." >>$TEMP_FILE
-      echo "----------------------------------------------------------------------" >>$TEMP_FILE
+      echo >>$TEMP_FILE
+      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
+      echo "Display status of any MOUNTED local block devices i.e. USB drives etc."          >>$TEMP_FILE
+      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
       # Now display information for local block devices i.e. USB drives, etc.
-      # Get df column header line.
-      echo "NAME       SIZE   USED    USE% AVAIL MOUNT-POINT" >>$TEMP_FILE
+      # Column header line corresponding to findmount --output parameter.
+      echo "NAME SIZE USED USE% AVAIL FSTYPE MOUNT-POINT" >$TEMP_FILE_2
       #
       # Get /media/ local devices mount-points.
-      findmnt --all --df --output=source,size,used,use%,avail,target | grep -e /media/ -e /md | sed 's/       //g' >>$TEMP_FILE
+      findmnt --all --df --output=source,size,used,use%,avail,fstype,target | grep -e /media/ -e /md >>$TEMP_FILE_2
       ERROR=$?
       #
+      # Change device name from "/dev/sdxx" to "sdxx" for the output.
+      sed -i 's|/dev/sd|sd|' $TEMP_FILE_2
       # Are there any local block devices mounted on /media/?
       if [ $ERROR -eq 1 ] ; then
          # No, local block devices not mounted.
-         echo "N/A                      N/A    N/A     No local block devices mounted" >>$TEMP_FILE
-         echo >>$TEMP_FILE
+         echo "N/A N/A N/A N/A N/A N/A No-local-block-devices-mounted" >>$TEMP_FILE_2
+         echo >>$TEMP_FILE_2
       fi
+      #
+      # Make pretty display.
+      column --table $TEMP_FILE_2 >>$TEMP_FILE
       #
       echo >>$TEMP_FILE
       echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
@@ -1869,41 +1924,34 @@ f_show_mount_points () {
       # using the lsblk command with only necessary columns displayed.
       #
       # Print column header line
-      # awk 'BEGIN { print "DEVICE  SIZE   FSTYPE             MOUNTPOINT" }' >>$TEMP_FILE
-      echo " NAME   SIZE      USED     USE%   AVAIL    FSTYPE   MOUNT-POINT" >>$TEMP_FILE
-      #
-      # Create $TEMP_FILE2.
-      TEMP_FILE2=$TEMP_FILE"_2.txt"
-      if [ -e $TEMP_FILE2 ] ; then
-         rm $TEMP_FILE2
-      fi
+      echo "NAME SIZE USED USE% AVAIL FSTYPE MOUNT-POINT" >$TEMP_FILE_2
       #
       # Print filtered results of command lsblk.
       # Use --tree to relate RAID md devices to RAID member drive devices.
       #
       # Easier to read information on RAID devices.
       # Include --output HOTPLUG to indicate USB devices.
-      lsblk -fs --tree --output HOTPLUG,NAME,SIZE,FSUSED,FSUSE%,FSAVAIL,FSTYPE,MOUNTPOINT,VENDOR,REV,MODEL | grep -e "sd[a-z][1-9]" -e md | awk  '{ printf "%-1s %-7s %-6s %-8s %-6s %-8s %-4s %-6s %-20s %s\n", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 }' >>$TEMP_FILE2
+      lsblk -fs --tree --output HOTPLUG,NAME,SIZE,FSUSED,FSUSE%,FSAVAIL,FSTYPE,MOUNTPOINT,VENDOR,REV,MODEL | grep -e "sd[a-z][1-9]" -e md | awk  '{ printf "%-1s %-7s %-6s %-8s %-6s %-8s %-4s %-6s %-20s %s\n", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 }' >$TEMP_FILE_3
       #
-      # Create $TEMP_FILE3.
-      TEMP_FILE3=$TEMP_FILE"_3.txt"
-      if [ -e $TEMP_FILE3 ] ; then
-         rm $TEMP_FILE3
+      # Does TEMP_FILE_3 have contents?
+      if [ ! -s "$TEMP_FILE_3" ] ; then
+         # No contents.
+         echo "N/A N/A N/A N/A N/A N/A No-local-block-devices-mounted" >>$TEMP_FILE_2
+      else
+         # Yes some contents.
+         # Filter out non-USB devices.
+         while read LINE
+               do
+                   # Is the $LINE a USB device? The first column "HOTPLUG" is 1.
+                   if [ $(echo $LINE | awk '{print $1}') -eq 1 ] ; then
+                      # Yes, so print the $LINE without the first column.
+                      echo $LINE | awk '{$1=""; printf "%-0s %-6s %-9s %-8s %-6s %-8s %-8s %s\n", $1,$2,$3,$4,$5,$6,$7,$8,$9 }' >> $TEMP_FILE_2
+                   fi
+               done < $TEMP_FILE_3
       fi
       #
-      # Filter out non-USB devices.
-      while read LINE
-            do
-                # Is the $LINE a USB device? The first column "HOTPLUG" is 1.
-                if [ $(echo $LINE | awk '{print $1}') -eq 1 ] ; then
-                   # Yes, so print the $LINE without the first column.
-                   echo $LINE | awk '{$1=""; printf "%-0s %-6s %-9s %-8s %-6s %-8s %-8s %s\n", $1,$2,$3,$4,$5,$6,$7,$8,$9 }' >> $TEMP_FILE3
-
-                fi
-            done < $TEMP_FILE2
-      #
-      # Rename $TEMP_FILE2.
-      cat $TEMP_FILE3 >> $TEMP_FILE
+      # Make pretty display.
+      column --table $TEMP_FILE_2 >>$TEMP_FILE
       #
       # Display results.
       case $2 in
@@ -2147,11 +2195,11 @@ f_text_editor () {
          if [ -z $XWIN ] ; then
             # Yes, a pure CLI environment so use only CLI file manager apps.
             # List file managers in preferred order with most preferred first.
-            TEXT_EDITOR_APPS="nano jed joe emacs micro ed vim vi"
+            TEXT_EDITOR_APPS="jed joe nano emacs micro ed vim vi"
          else
             # No, it is an X-Window environment so can use both X-Window and CLI file manager apps.
             # List file managers in preferred order with most preferred first.
-            TEXT_EDITOR_APPS="xed gedit kedit pluma mousepad"
+            TEXT_EDITOR_APPS="xed gedit kedit kwrite kate geany pluma mousepad"
          fi
          #
          for TEXT_EDITOR in $TEXT_EDITOR_APPS
@@ -2165,12 +2213,12 @@ f_text_editor () {
                       #
                       # Run application $TEXT_EDITOR to open document $FILE_TEXT.
                       #
-                      # Run text editor as a foreground process?
+                      # Run text editor as a background process?
                       if [ "$5" = 2 ] ; then
-                         # No, run in background.
+                         # Yes, run in background.
                          $TEXT_EDITOR $3/$FILE_TXT &
                       else
-                         # Yes, run in foreground.
+                         # No, run in foreground.
                          $TEXT_EDITOR $3/$FILE_TXT
                       fi
                       #
@@ -2315,6 +2363,7 @@ f_web_browser () {
 #    Uses: TEMP_FILE2, ANS, ERROR, SCRIPT_LIST.
 # Outputs: ANS (List of selected directories delimited by spaces)
 #              Note: A selected directory does not include a trailing "/" forward-slash.
+#
 #          !!! ERROR flag does not mean success or failure for this function !!!
 #              Test the $ANS string for success or failure.
 #
@@ -2430,10 +2479,10 @@ f_select_dir () {
                        # Confirm directory selection.
                        f_select_dir_verify $1 "$DIR_DESCR" "$DIR_SELECTED" "$3" "$4"
                        # Outputs DIR_OK="Y"/"N".
+                       # Outputs ERROR=1 (to escape while-loop).
                        #
                        if [ "$DIR_OK" = "N" ] ; then
                           DIR_SELECTED=""
-                          ERROR=0
                        fi
                     done
               #
@@ -2506,6 +2555,7 @@ f_select_dir () {
                           # Confirm directory selection.
                           f_select_dir_verify $1 "$DIR_DESCR" "$DIR_SELECTED" "$DEFAULT_DIR" $4
                           # Outputs DIR_OK="Y"/"N".
+                          # Outputs ERROR=1 always to exit this while-loop.
                           if [ "$DIR_OK" = "N" ] ; then
                              DIR_SELECTED=""
                           fi
@@ -2673,7 +2723,9 @@ f_select_dir_fzf () {
 #                   external while-loops which may call f_select_dir_verify.
 #
 #          !!! ERROR flag does not mean success or failure for this function !!!
-#              Test the $ANS string for success or failure.
+#              Test the $DIR_OK string for success or failure.
+#              Test the file contents of $TEMP_FILE2 for success or failure.
+#
 #
 # Summary: Used in f_select_dir while-loop. Confirm a directory exists or if not create it.
 #
@@ -2752,6 +2804,7 @@ f_select_dir_verify () {
                     fi
                  else
                     # No, the directory selected is not correct.
+                    # The user answered that the directory name is not correct.
                     # Set DIR_OK flag to indicate error.
                     DIR_OK="N"
                     # so exit while-loop by setting ERROR=1.
@@ -2759,6 +2812,7 @@ f_select_dir_verify () {
                  fi
               else
                  # No, the directory selected is not correct.
+                 # Selected directory is null.
                  # Set DIR_OK flag to indicate error.
                  DIR_OK="N"
                  # so exit while-loop by setting ERROR=1.
