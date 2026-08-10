@@ -23,7 +23,7 @@
 # |        Default Variable Values         |
 # +----------------------------------------+
 #
-VERSION="2025-06-23 23:43"
+VERSION="2026-07-23 08:09"
 #
 # WARNING: Do not define $THIS_FILE within a library script.
 #
@@ -76,6 +76,49 @@ VERSION="2025-06-23 23:43"
 ## Code Change History
 ##
 ## (After each edit made, please update Code History and VERSION.)
+##
+## 2026-07-23 *f_show_mount_points changed data display for clarity
+##             and updated comments.
+##            *f_show_mount_points_2 updated comments.
+##
+## 2026-01-28 *f_show_mount_points_2 rewritten to display more storage
+##             devices having other filesystem types.
+##
+## 2026-01-01 *f_show_mount_points fixed temp file not deleted.
+##            *f_show_mount_points_1, f_show_mount_points_2 updated
+##             comments and documentation.
+##
+## 2025-08-28 *f_text_editor fixed file name by not adding a directory as
+##             the file name passed from f_select_file already includes the
+##             directory.
+##
+## 2025-08-21 *f_download_from_local_repository improved user-message.
+##            *f_update_menu_gui, f_update_menu_txt insert host name into
+##             menu title.
+##
+## 2025-08-15 *f_show_mount_points improved display.
+##            *f_show_mount_points_1, f_show_mount_points_2 added.
+##
+## 2025-08-14 *f_show_mount_points fixed to display unmounted devices.
+##
+## 2025-08-08 *f_show_mount_points added display of partition/file-system
+##             label.
+##             Note: Partition type "msdos" only has file-system labels.
+##                   Partition type "gpt" has partition labels.
+##
+## 2025-07-31 *f_test_connection added user-message "No network connection"
+##             due to possible ping permissions issue.
+##
+## 2025-07-27 *f_show_mount_points added show "/" directory.
+##
+## 2025-07-17 *f_select_dir_verify fixed if-statment to properly process
+##             when a null directory was selected and not verify choice
+##             since usually user wants to stop selecting a directory.
+##            *f_select_file_verify fixed if-statment
+##             changed from: [ -n $FILE_SELECTED ]
+##             changed   to: [ -n "$FILE_SELECTED" ]
+##
+## 2025-06-29 *f_select_file improved user message for app FZF.
 ##
 ## 2025-06-23 *f_show_mount_points improved data display.
 ##
@@ -1435,7 +1478,7 @@ f_test_connection () {
       ping -c 1 -q $2 > /dev/null # Ping server address. All output goes to /dev/null.
       ERROR=$?
       if [ $ERROR -ne 0 ] ; then
-         f_message $1 "NOK" "Ping Test Network Connection" " \n\Z1\Zb  No network connection to $2.\Zn" $3
+         f_message $1 "NOK" "Ping Test Network Connection" " \n\Z1\Zb  No network connection to $2.\n\nOr need to set permission to ping by command:\"\nsudo setcap cap_net_raw+p /usr/bin/ping\"\Zn" $3
       else
          f_message $1 "NOK" "Ping Test Network Connection" "Network connnection to $2 is good." $3
       fi
@@ -1790,12 +1833,12 @@ f_help_message () {
 #          $3 - [OPTIONAL] to control pause duration. Only used if $2="NOK".
 #                          $3 seconds pause to allow text to be read before continuing automatically.
 #          $THIS_FILE,
-#    Uses: X, Y, ERROR, $TEMP_FILE.
+#    Uses: ERROR, $TEMP_FILE, $TEMP_FILE_2, TEMP_FILE_3.
 # Outputs: None.
 #
 # Summary: Display the mount-points and local devices.
 #
-# Dependencies: df, grep, lsblk.
+# Dependencies: findmnt, lsblk, f_show_mount_points_bashrc_2.
 #
 f_show_mount_points () {
       #
@@ -1806,9 +1849,9 @@ f_show_mount_points () {
       TEMP_FILE_3=$TEMP_FILE"_3.txt"
       #
       echo "Local PC is "$HOSTNAME"." >$TEMP_FILE
-      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
-      echo "Display status of any shared directories from remote file servers."              >>$TEMP_FILE
-      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
+      echo "-----------------------------------------------------------------" >>$TEMP_FILE
+      echo "Display mounted remote shared directories with available storage." >>$TEMP_FILE
+      echo "-----------------------------------------------------------------" >>$TEMP_FILE
       #
       # Note: The applications "df" and "findmnt" can show the same
       #       formatted information using certain optional parameters.
@@ -1835,17 +1878,22 @@ f_show_mount_points () {
       # Get column header line.
       echo "REMOTE SIZE USED USE% AVAIL MOUNT-POINT" >$TEMP_FILE_2
       #
-      # Get /mnt/ file server mount-points
-      findmnt --all --df --output=source,size,used,use%,avail,target | grep /mnt/ >>$TEMP_FILE_2
+      # Get /mnt/ file server mount-points. Ignore "/dev/mdx" RAID devices.
+      findmnt --all --df --output=source,size,used,use%,avail,target | grep /mnt/ | grep --invert-match "/dev/md" >>$TEMP_FILE_2
       ERROR=$?
+      #
+      # Are there any file server share-points mounted on /mnt/?
+      if [ $ERROR -eq 1 ] ; then
+         echo "N/A N/A N/A N/A N/A No-Remote-shares-on-any-Mount-points" >>$TEMP_FILE_2
+      fi
       #
       # Make pretty display.
       column --table $TEMP_FILE_2 >>$TEMP_FILE
       #
       echo >>$TEMP_FILE
-      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
-      echo "Display usernames, shared remote directories, and mount-points."                 >>$TEMP_FILE
-      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
+      echo "-----------------------------------------------------------------" >>$TEMP_FILE
+      echo "Display mounted remote shared directories with usernames."         >>$TEMP_FILE
+      echo "-----------------------------------------------------------------" >>$TEMP_FILE
       #
       # Are there any file server share-points mounted on /mnt/?
       if [ $ERROR -eq 0 ] ; then
@@ -1864,18 +1912,23 @@ f_show_mount_points () {
          #        [share-point] [mount-point] etc.
          # 2. 1st awk prints first 2 fields, inserts "^" carot, prints entire line gotten from grep:
          #        [share-point] [mount-point]^[share-point] [mount-point] cifs rw,relatime,vers=3.1.1,cache=strict,username=[user-name], etc.
-         # 3. sed inserts "^" carot before "username=":
-         #        [share-point] [mount-point]^[share-point] [mount-point] cifs rw,relatime,vers=3.1.1,cache=strict,^username=[user-name], etc.
+         # 3. sed inserts "^" carot before "username=[user-name]" and then deletes "username=":
+         #        [share-point] [mount-point]^[share-point] [mount-point] cifs rw,relatime,vers=3.1.1,cache=strict,^[user-name], etc.
          #                 (1st field)       ^carot                                                                ^carot    (3rd field)
          # 4. 2nd awk prints 1st and 3rd "^" fields:
-         #        [share-point] [mount-point] username=[user-name],etc.
+         #        [share-point] [mount-point] [user-name],etc.
          # 5. 3rd awk prints only the desired data, ignoring everything else:
-         #        [share-point] [mount-point] username=[user-name]
+         #        [share-point] [mount-point] [user-name]
          # 6. 4th awk prints data in the desired final format.
-         #        username=[user-name] mounted [share-point] on [mount-point]
+         #        [user-name] mounted [share-point] on [mount-point]
          # 7. column formats data into pretty columns.
          #
-         grep "//" /etc/mtab | awk '{ print $1" "$2"^"$0 }'| sed 's/username=/\^username=/g' | awk -F "^" '{ print $1" "$3 }' | awk -F "," '{ print $1 }' | awk '{ print $3" mounted "$1" on "$2 }' >> $TEMP_FILE_2
+         # Commented out in favor of just displaying [user-name] rather than "username=[user-name]".
+         # Display "username=[user-name]" in column "USERNAME".
+         #grep "//" /etc/mtab | awk '{ print $1" "$2"^"$0 }'| sed 's/username=/\^username=/g' | awk -F "^" '{ print $1" "$3 }' | awk -F "," '{ print $1 }' | awk '{ print $3" mounted "$1" on "$2 }' >> $TEMP_FILE_2
+         #
+         # Display just "[user-name]" in column "USERNAME".
+         grep "//" /etc/mtab | awk '{ print $1" "$2"^"$0 }'| sed 's/username=/\^/g' | awk -F "^" '{ print $1" "$3 }' | awk -F "," '{ print $1 }' | awk '{ print $3" mounted "$1" on "$2 }' >> $TEMP_FILE_2
          echo >>$TEMP_FILE_2
          #
          # Make pretty display.
@@ -1883,75 +1936,50 @@ f_show_mount_points () {
       else
          # No, remote file server share-points not mounted.
          # Get column header line.
-         echo "USERNAME MOUNTED REMOTE ON MOUNT-POINT" >$TEMP_FILE_2
-         echo "N/A N/A N/A  No-Remote-shares on any-Mount-points" >>$TEMP_FILE_2
+         echo "USERNAME STATUS REMOTE -- MOUNT-POINT" >$TEMP_FILE_2
+         echo "N/A N/A N/A -- No-Remote-shares-on-any-Mount-points" >>$TEMP_FILE_2
          echo >>$TEMP_FILE_2
          #
          # Make pretty display.
          column --table $TEMP_FILE_2 >>$TEMP_FILE
       fi
       #
-      echo >>$TEMP_FILE
-      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
-      echo "Display status of any MOUNTED local block devices i.e. USB drives etc."          >>$TEMP_FILE
-      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
-      # Now display information for local block devices i.e. USB drives, etc.
-      # Column header line corresponding to findmount --output parameter.
-      echo "NAME SIZE USED USE% AVAIL FSTYPE MOUNT-POINT" >$TEMP_FILE_2
-      #
-      # Get /media/ local devices mount-points.
-      findmnt --all --df --output=source,size,used,use%,avail,fstype,target | grep -e /media/ -e /md >>$TEMP_FILE_2
-      ERROR=$?
-      #
-      # Change device name from "/dev/sdxx" to "sdxx" for the output.
-      sed -i 's|/dev/sd|sd|' $TEMP_FILE_2
-      # Are there any local block devices mounted on /media/?
-      if [ $ERROR -eq 1 ] ; then
-         # No, local block devices not mounted.
-         echo "N/A N/A N/A N/A N/A N/A No-local-block-devices-mounted" >>$TEMP_FILE_2
-         echo >>$TEMP_FILE_2
-      fi
-      #
-      # Make pretty display.
-      column --table $TEMP_FILE_2 >>$TEMP_FILE
-      #
-      echo >>$TEMP_FILE
-      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
-      echo "List all (mounted/unmounted) removable local block devices i.e. USB drives etc." >>$TEMP_FILE
-      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
+      # Display status of any MOUNTED local block devices i.e. USB drives etc.
+      # Commented out in favor of separate listings of mounted removable devices and non-removable devices.
+      #f_show_mount_points_1
       #
       # Print /dev/sd[a-z][1-9] i.e. "/dev/sdb1" block devices HDDs, SSDs, USB drives
       # using the lsblk command with only necessary columns displayed.
       #
-      # Print column header line
-      echo "NAME SIZE USED USE% AVAIL FSTYPE MOUNT-POINT" >$TEMP_FILE_2
+      # Use "lsblk --list-columns" to get the latest list of supported columns.
       #
-      # Print filtered results of command lsblk.
-      # Use --tree to relate RAID md devices to RAID member drive devices.
-      #
-      # Easier to read information on RAID devices.
       # Include --output HOTPLUG to indicate USB devices.
-      lsblk -fs --tree --output HOTPLUG,NAME,SIZE,FSUSED,FSUSE%,FSAVAIL,FSTYPE,MOUNTPOINT,VENDOR,REV,MODEL | grep -e "sd[a-z][1-9]" -e md | awk  '{ printf "%-1s %-7s %-6s %-8s %-6s %-8s %-4s %-6s %-20s %s\n", $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 }' >$TEMP_FILE_3
+      # Include all devices since some start with "mmcblk0", "md", "md[0-9]", "mmcblk", "sda", "sda[0-9]", "sdb", "sda[0-9]" etc.
+      # Include UUID since a removable USB device (i.e. vfat formatted) may not have a filesystem label or partition label.
+      lsblk --raw --output HOTPLUG,NAME,SIZE,FSUSED,FSUSE%,FSAVAIL,FSTYPE,PARTLABEL,LABEL,MOUNTPOINT,UUID | sort >$TEMP_FILE_3
       #
-      # Does TEMP_FILE_3 have contents?
-      if [ ! -s "$TEMP_FILE_3" ] ; then
-         # No contents.
-         echo "N/A N/A N/A N/A N/A N/A No-local-block-devices-mounted" >>$TEMP_FILE_2
-      else
-         # Yes some contents.
-         # Filter out non-USB devices.
-         while read LINE
-               do
-                   # Is the $LINE a USB device? The first column "HOTPLUG" is 1.
-                   if [ $(echo $LINE | awk '{print $1}') -eq 1 ] ; then
-                      # Yes, so print the $LINE without the first column.
-                      echo $LINE | awk '{$1=""; printf "%-0s %-6s %-9s %-8s %-6s %-8s %-8s %s\n", $1,$2,$3,$4,$5,$6,$7,$8,$9 }' >> $TEMP_FILE_2
-                   fi
-               done < $TEMP_FILE_3
-      fi
+      # Change from space delimiter to carot delimiter.
+      sed -i 's| |^|g' $TEMP_FILE_3
       #
-      # Make pretty display.
-      column --table $TEMP_FILE_2 >>$TEMP_FILE
+      TEMP_FILE_4=$TEMP_FILE"_4.txt"
+      #
+      echo >>$TEMP_FILE
+      echo "-----------------------------------------------------------------" >>$TEMP_FILE
+      echo "List non-removable local block devices i.e. HDD, SDD drives etc."  >>$TEMP_FILE
+      echo "-----------------------------------------------------------------" >>$TEMP_FILE
+      #
+      # Show non-removable block devicces.
+      cp $TEMP_FILE_3 $TEMP_FILE_4
+      f_show_mount_points_2 $1 0 $TEMP_FILE_4
+      #
+      echo >>$TEMP_FILE
+      echo "-----------------------------------------------------------------" >>$TEMP_FILE
+      echo "List removable local block devices i.e. USB drives etc."           >>$TEMP_FILE
+      echo "-----------------------------------------------------------------" >>$TEMP_FILE
+      #
+      # Show removable USB block devices.
+      cp $TEMP_FILE_3 $TEMP_FILE_4
+      f_show_mount_points_2 $1 1 $TEMP_FILE_4
       #
       # Display results.
       case $2 in
@@ -1972,19 +2000,216 @@ f_show_mount_points () {
       fi
       #
       # Delete temporary file.
-      if [ -r $TEMP_FILE2 ] ; then
-         rm $TEMP_FILE2
+      if [ -r $TEMP_FILE_2 ] ; then
+         rm $TEMP_FILE_2
       fi
       #
       # Delete temporary file.
-      if [ -r $TEMP_FILE3 ] ; then
-         rm $TEMP_FILE3
+      if [ -r $TEMP_FILE_3 ] ; then
+         rm $TEMP_FILE_3
       fi
       #
-      # Throw out these variables.
-      unset X Y ERROR FM_CMD_1 FM_CMD_2 FM_CMD_HEAD_1 FM_CMD_HEAD_2
+      # Delete temporary file.
+      if [ -r $TEMP_FILE_4 ] ; then
+         rm $TEMP_FILE_4
+      fi
       #
 }  # End of function f_show_mount_points.
+#
+# +----------------------------------------+
+# |     Function f_show_mount_points_1     |
+# +----------------------------------------+
+#
+#  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
+#          $2 - Display block devices
+#               null (Default) - Display non-removable block devices i.e. HDD, SDD devices.
+#               0              - Display non-removable block devices i.e. HDD, SDD devices.
+#               1              - Display removable block devices i.e. USB drives.
+#          $3 - Temporary file name.
+#
+#    Uses: None.
+# Outputs: $TEMP_FILE_3.
+#
+# Summary: Display the mount-points and local devices under one banner or header line.
+#          Display does not differentiate between local removable and non-removable block devices.
+#          Display status of any MOUNTED local removable and non-removable block devices
+#          i.e. USB drives, non-removable SSD drives etc.
+#
+# Dependencies: df, grep, lsblk.
+#
+f_show_mount_points_1 () {
+      #
+      echo >>$TEMP_FILE
+      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
+      echo "Display status of any MOUNTED local block devices i.e. USB drives etc."          >>$TEMP_FILE
+      echo "-------------------------------------------------------------------------------" >>$TEMP_FILE
+      # Now display information for local block devices i.e. USB drives, etc.
+      # Column header line corresponding to findmount --output parameter.
+      echo "NAME SIZE USED USE% AVAIL FSTYPE LABEL LABEL MOUNT-POINT" >$TEMP_FILE_2
+      #
+      # Get /media/ local devices mount-points.
+      # Use "findmnt --list-columns" to get the latest list of supported columns.
+      # findmnt option --output="source" is the source device. "target" is the mount-point.
+      #
+      # Show Home directory "/".
+      findmnt --notruncate --raw --output=source,size,used,use%,avail,fstype,partlabel,label,target | grep "/"$ >>$TEMP_FILE_2
+      #
+      # Show any /media/ mounted local block devices.
+      # See "findmnt --help" and "findmnt --list-columns" for "--output=" parameters.
+      findmnt --all --notruncate --raw --output=source,size,used,use%,avail,fstype,partlabel,label,target | grep /md/ >>$TEMP_FILE_2
+      findmnt --all --notruncate --raw --output=source,size,used,use%,avail,fstype,partlabel,label,target | grep -e "sd[a-z][1-9]" | grep "/media/" >>$TEMP_FILE_2
+      ERROR=$?
+      #
+      # Change device name from "/dev/sdxx" to "sdxx" for the output.
+      # Change from space delimiter to carot delimiter.
+      sed -i -e 's|/dev/||g' -e 's| |^|g' $TEMP_FILE_2
+      #
+      if [ -r $TEMP_FILE_3 ] ; then
+         rm $TEMP_FILE_3
+      fi
+      #
+      # Display the Partition Label or Filesystem Label.
+      while read LINE
+            do
+               FILESYS_LABEL=$(echo $LINE | awk -F "^" '{ print $8 }')
+                  PART_LABEL=$(echo $LINE | awk -F "^" '{ print $7 }')
+               #
+               if [ -z "$PART_LABEL" ] && [ -n "$FILESYS_LABEL" ] ; then
+                  echo $LINE | awk -F "^" '{ print $1,$2,$3,$4,$5,$6,$8,$9 }' >> $TEMP_FILE_3
+               elif [ -z "$PART_LABEL" ] ; then
+                  echo $LINE | awk -F "^" '{ print $1,$2,$3,$4,$5,$6,"---",$9 }' >> $TEMP_FILE_3
+               else
+                  echo $LINE | awk -F "^" '{ print $1,$2,$3,$4,$5,$6,$7,$9 }' >> $TEMP_FILE_3
+               fi
+            done < $TEMP_FILE_2
+      #
+      # Make pretty display.
+      column --table $TEMP_FILE_3 >>$TEMP_FILE
+      #
+}  # End of function f_show_mount_points_1.
+#
+# +----------------------------------------+
+# |     Function f_show_mount_points_2     |
+# +----------------------------------------+
+#
+#  Inputs: $1 - "text", "dialog" or "whiptail" the command-line user-interface in use.
+#          $2 - Display block devices
+#               null (Default) - Display non-removable block devices i.e. HDD, SDD devices.
+#               0              - Display non-removable block devices i.e. HDD, SDD devices.
+#               1              - Display removable block devices i.e. USB drives.
+#          $3 - Temporary file name.
+#
+#    Uses: None.
+# Outputs: $TEMP_FILE_3.
+#
+# Summary: Display either all local removable block devices or all local non-removable block devices
+#          mount-points and status.
+#          i.e. Local removable USB storage devices or local non-removable (non-USB) storage devices SSD drives etc.
+#
+#          Later versions of "lsblk" have option --filter so can do "lsblk --filter HOTPLUG"
+#          (rather than "grep --regexp=^$2" or "grep --regexp=^1")
+#          to display only local removable block devices.
+#
+# Dependencies: df, grep, lsblk.
+#
+# Contents of $3 Temporary file:
+#
+# 1^mmcblk0^116.4G^^^^^^^^
+# 1^mmcblk0p1^512M^77.7M^15%^432.3M^vfat^^bootfs^/boot/firmware^3A1A-EC0C
+# 1^mmcblk0p2^115.9G^67.8G^59%^40.4G^ext4^^rootfs^/^063c26d0-665d-497a-ad0f-965d05b228be
+# 1^sda1^3.7G^^^^vfat^^^^6166-3964
+# 1^sda^3.7G^^^^^^^^
+# 1^sdb1^931.5G^414.7G^45%^454.6G^ext4^^Akita^/media/robert/Akita_HDD_ext^3384dca0-973f-486a-9e38-84c987c79d23
+# 1^sdb^931.5G^^^^^^^^
+# 1^sdc1^238.5G^48.3G^21%^173.5G^ext4^^Border_Collie^/media/robert/Border_Collie_SSD_ext^8861dbdf-5a39-4361-b382-9c4ab70355fa
+# 1^sdc^238.5G^^^^^^^^
+# 1^sdd1^465.8G^202.5G^44%^232.5G^ext4^^German_Shepherd^/media/robert/German_Shepherd_HDD_ext^7df11fde-84e4-40ff-a80a-da91ef162fd7
+# 1^sdd^465.8G^^^^^^^^
+# 1^sde1^238.2G^56.6G^24%^164.9G^ext4^^Dalmation^/media/robert/Dalmatian_SSD_ext^491f31af-ead4-4ef3-bee2-b28e15e5fca8
+# 1^sde^238.2G^^^^^^^^
+# 1^sr0^300M^^^^^^^^
+# HOTPLUG^NAME^SIZE^FSUSED^FSUSE%^FSAVAIL^FSTYPE^PARTLABEL^LABEL^MOUNTPOINT^UUID
+#    1   ^ 2  ^ 3  ^  4   ^   5  ^   6   ^  7   ^    8    ^  9  ^    10    ^ 11
+#  pieces are delimited by carots (^)
+#
+f_show_mount_points_2 () {
+      #
+      # Display either removable or non-removable block devices.
+      grep --regexp=^$2 $3 > $TEMP_FILE_2
+      #
+      mv $TEMP_FILE_2 $3
+      #
+      # Does TEMP_FILE $3 have contents?
+      if [ ! -s "$3" ] ; then
+         # No contents.
+         echo "N/A N/A N/A N/A N/A N/A N/A No-local-block-devices-mounted" >>$TEMP_FILE_2
+      else
+         # Yes some contents.
+         # Display the Partition Label or Filesystem Label.
+         while read LINE
+               do
+                            FS_TYPE=$(echo $LINE | awk -F "^" '{ print $7 }')
+                         PART_LABEL=$(echo $LINE | awk -F "^" '{ print $8 }')
+                      FILESYS_LABEL=$(echo $LINE | awk -F "^" '{ print $9 }')
+                        MOUNT_POINT=$(echo $LINE | awk -F "^" '{ print $10 }')
+                               UUID=$(echo $LINE | awk -F "^" '{ print $11 }')
+                  #
+                  # Note: Partition type "msdos" only has file-system labels.
+                  #       Partition type "gpt" has partition labels.
+                  #
+                  # Note: awk syntax to use pre-defined variables within awk
+                  #       i.e. LABEL_OUT="$LABEL_OUT" after the awk print statement.
+                  #
+                  # Is there a filesystem type designator? (only partitions have fs type designators).
+                  if [ -n "$FS_TYPE" ] ; then
+                     # Yes, so $LINE is a partition of a storage device.
+                     # Detect storage device label (partition label, filesystem label, or UUID used last 5-characters as a label).
+                     LABEL_OUT=""
+                     if [ -n "$PART_LABEL" ] ; then
+                        # Substitute "x20" for as underscore "_" since "x20" will be interpreted as a <space>. Do not want <space> characters in the label.
+                        LABEL_OUT=$(echo $PART_LABEL | sed 's/x20/_/g')
+                     fi
+                     #
+                     if [ -z "$LABEL_OUT" ] && [ -n "$FILESYS_LABEL" ] ; then
+                        # Substitute "x20" for as underscore "_" since "\x20" will be interpreted as a <space>. Do not want <space> characters in the label.
+                        LABEL_OUT=$(echo $FILESYS_LABEL | sed 's/x20/_/g')
+                     fi
+                     #
+                     if [ -z "$LABEL_OUT" ] && [ -n "$UUID" ] ; then
+                        # Format: [Last 5-characters of the UUID] as the Storage Device Label.
+                        # UUID's may have anywhere from 5 to 36 alpha-numeric characters including "-" dashes.
+                        LABEL_OUT=$(echo -n $UUID | tail -c 4)
+                     fi
+                     #
+                     # Format display depending if storage device is mounted or not.
+                     # Is the storage device mounted? if so then display all information of device.
+                     if [ -n "$MOUNT_POINT" ] ; then
+                        # Yes, device is mounted.
+                        # awk command explanation.
+                        # -v -- allows variables to be used within the awk command.
+                        # (Used here for simpler readability of which fields are actually displayed).
+                        #
+                        echo $LINE | awk -v FS_TYPE=$FS_TYPE -v LABEL_OUT=$LABEL_OUT -v MOUNT_POINT=$MOUNT_POINT -F "^" '{ print $2,$3,$4,$5,$6,FS_TYPE,LABEL_OUT,MOUNT_POINT }' >> $TEMP_FILE_2
+                     else
+                        # No, device is not mounted. Do not show FSUSED^FSUSE%^FSAVAIL or UUID since device is not mounted.
+                        # awk command explanation.
+                        # -v -- allows variables to be used within the awk command.
+                        # (Used here for simpler readability of which fields are actually displayed).
+                        #
+                        echo $LINE | awk -v FS_TYPE=$FS_TYPE -v LABEL_OUT=$LABEL_OUT -F "^" '{ print $2,$3,"--- --- ---",FS_TYPE,LABEL_OUT,"---" }' >> $TEMP_FILE_2
+                     fi
+                  fi
+                  #
+               done < $3
+      fi
+      #
+      # Print column header line
+      sed '1i NAME SIZE USED USE% AVAIL FSTYPE LABEL MOUNT-POINT' $TEMP_FILE_2 > $3
+      #
+      # Make pretty display.
+      column --table $3 >>$TEMP_FILE
+      #
+}  # End of function f_show_mount_points_2.
 #
 # +----------------------------------------+
 # |         Function f_file_manager        |
@@ -2124,7 +2349,7 @@ f_file_manager () {
 #          $2 - String "[Description of] File(s)"
 #                  (String must either begin and end with double-quotes
 #                  or must have underscores substituting for spaces).
-#          $3 - Default directory.
+#          $3 - Default directory (without trailing "/").
 #          $4 - [OPTIONAL] File name.
 #          $5 - [OPTIONAL] Foreground/Background process flag.
 #                          null (Default) - Run text editor as a foreground process.
@@ -2143,12 +2368,13 @@ f_text_editor () {
       FILE_TXT=""
       #
       if [ -e "$3/$4" ] ; then
-         ANS=$4
+         ANS=$3/$4
       else
          f_select_file $1 "$2" $3
       fi
       #
       # Set FILE_TXT to the list of selected files.
+      # Format: <Directory>/<File name>
       FILE_TXT=$ANS
       #
       if [ -n "$FILE_TXT" ] ; then
@@ -2216,10 +2442,10 @@ f_text_editor () {
                       # Run text editor as a background process?
                       if [ "$5" = 2 ] ; then
                          # Yes, run in background.
-                         $TEXT_EDITOR $3/$FILE_TXT &
+                         $TEXT_EDITOR $FILE_TXT &
                       else
                          # No, run in foreground.
-                         $TEXT_EDITOR $3/$FILE_TXT
+                         $TEXT_EDITOR $FILE_TXT
                       fi
                       #
                       ERROR=$?
@@ -2635,7 +2861,7 @@ f_select_dir () {
 #          THIS_DIR.
 #    Uses: None.
 # Outputs: TEMP_FILE2 (List of selected directories delimited by spaces)
-#          ERROR.
+#          ERROR=0 (The $ERROR is meaningless because always exits ERROR=0.
 #
 # Summary: Used in f_select_dir while-loop. Confirm a directory exists or if not create it.
 #
@@ -2662,27 +2888,34 @@ f_select_dir_fzf () {
                # then DEFAULT_DIR is set to $3 by f_select_dir_verify to start over from the original directory.
                DIR_SELECTED=$(find $DIR_OLD -maxdepth 1 -type d 2>/dev/null | fzf --query="^$DEFAULT_DIR" --pointer="=>" --prompt "Type file name and use up-down arrows. Esc key to skip. Select: ")
                ERROR=$?
+               f_message $1 "OK" "Diagnostic line 2891" "ERROR=$ERROR"
                #
-               if [ "$ERROR" -eq 0 ] ; then
-                  # Is directory selection done?
-                  if [ "$DIR_SELECTED" = "$DIR_OLD" ] ; then
-                     # Yes, final directory selection is made.
-                     if [ -n $DIR_SELECTED ] ; then
-                        # Verify each file selected $FILE_SELECTED and append to file TEMP_FILE2.
-                        f_select_dir_verify $1 "$2" "$DIR_SELECTED" "$3" "$4"
-                        # Outputs TEMP_FILE2 which has a list of selected file names in a single column.
-                        # Outputs ERROR=1 if selecting only 1 directory (not multiple directories).
-                        # Outputs DIR_OK="Y"/"N".
-                     fi
-                  else
-                     DIR_OLD=$DIR_SELECTED
-                     DEFAULT_DIR=$DIR_SELECTED
-                  fi
-               fi
+               case $ERROR in
+                    0)
+                       # Is directory selection done?
+                       if [ "$DIR_SELECTED" = "$DIR_OLD" ] ; then
+                          # Yes, final directory selection is made.
+                          if [ -n "$DIR_SELECTED" ] ; then
+                             # Verify each file selected $FILE_SELECTED and append to file TEMP_FILE2.
+                             f_select_dir_verify $1 "$2" "$DIR_SELECTED" "$3" "$4"
+                             # Outputs TEMP_FILE2 which has a list of selected file names in a single column.
+                             # Outputs DIR_OK="Y"/"N".
+                             # Outputs ERROR=1 if done choosing directory/directories.
+                          fi
+                       else
+                          DIR_OLD=$DIR_SELECTED
+                          DEFAULT_DIR=$DIR_SELECTED
+                       fi
+               ;;
+                    130)
+                       f_message $1 "NOK" "Exit fzf app" "<ESC> button pressed."
+               ;;
+               esac
             done
       #
       # Reset ERROR since on exiting WHILE-loop it will always be EXIT=1.
-      ERROR=0
+      # Do NOT use ERROR to check for success or exit by <ESC> button.
+      #ERROR=0
       #
       # If user pressed [Ctrl-C] or [Esc] key,
       # then ERROR=130 and DIR_SELECTED="".
@@ -2742,7 +2975,7 @@ f_select_dir_verify () {
       case $1 in
            dialog)
               # Was any directory selected?
-              if [ $ERROR -eq 0 ] && [ -n $DIR_SELECTED ] ; then
+              if [ "$ERROR" -eq 0 ] && [ -n "$DIR_SELECTED" ] ; then
                  f_yn_question $1 "Y" "Confirm $DIR_DESCR name" "$DIR_DESCR name:\n$DIR_SELECTED\n\nIs the $DIR_DESCR name correct?"
                  #
                  # Is the selected directory name correct?
@@ -2821,7 +3054,7 @@ f_select_dir_verify () {
            ;;
            whiptail | text)
               # Was any directory selected?
-              if [ $ERROR -eq 0 ] && [ -n $DIR_SELECTED ] ; then
+              if [ "$ERROR" -eq 0 ] && [ -n "$DIR_SELECTED" ] ; then
                  f_yn_question $1 "Y" "Confirm $DIR_DESCR name" "$DIR_DESCR name:\n$DIR_SELECTED\n\nIs the $DIR_DESCR name correct?"
                  # Yes, a directory was selected.
                  # Is the selected directory name correct?
@@ -3055,7 +3288,7 @@ f_select_file () {
                  #       2      Error
                  #       130    Interrupted with CTRL-C or ESC
                  #
-                 f_message $1 "OK" "$FILE_DESCR" "At the next prompt, select the desired file name\nby typing the first few letters of the name and using the up-down arrows.\n\nPress [ Enter ] key to select file name.\n\nPress [ Esc ] key or [ Ctrl+C ] to EXIT or CANCEL selection."
+                 f_message $1 "OK" "$FILE_DESCR" "Using FZF Application to select file(s).\n\nDefault Directory or File: $3\n\nAt the next prompt, select the desired file name\nby typing the first few letters of the name and using the up-down arrows.\n\nPress [ Enter ] key to select file name.\n\nPress [ Esc ] key or [ Ctrl+C ] to EXIT or CANCEL selection."
                  #
                  # Only a single file name to select?
                  if [ "$4" = 1 ] ; then
@@ -3175,7 +3408,7 @@ f_select_file_verify () {
       FILE_SELECTED=$4
       #
       # Was any file selected?
-      if [ $ERROR -eq 0 ] && [ -n $FILE_SELECTED ] ; then
+      if [ $ERROR -eq 0 ] && [ -n "$FILE_SELECTED" ] ; then
          f_yn_question $1 "Y" "Confirm $FILE_DESCR name" "$FILE_DESCR name:\n$FILE_SELECTED\n\nIs the $FILE_DESCR name correct?"
          #
          # Is the selected file name correct?
@@ -4945,7 +5178,7 @@ f_update_menu_txt () {
       echo "            do    # Start of menu until loop." >>$2
       echo "               clear  # Blank the screen." >>$2
       # Format string, substitute spaces for underscores.
-      MENU_TITLE=$(echo $3 | tr '_' ' ') # Do not >>$2 this line.
+      MENU_TITLE=$(echo "$3   (on_host: $HOSTNAME)" | tr '_' ' ') # Do not >>$2 this line.
       echo "               MENU_TITLE=\"$MENU_TITLE\"" >>$2
       echo "               echo \"               \$MENU_TITLE\"; echo" >>$2
       #
@@ -5121,7 +5354,7 @@ f_update_menu_gui () {
       echo "      until [ \"\$CHOICE\" = \"QUIT\" ]" >>$2
       echo "            do    # Start of Menu until loop." >>$2
       # Format string, substitute spaces for underscores.
-                           MENU_TITLE=$(echo $3 | tr '_' ' ')
+                           MENU_TITLE=$(echo "$3   (on_host: $HOSTNAME)" | tr '_' ' ')
       echo "               MENU_TITLE=\"$MENU_TITLE\"" >>$2
       #
       # Pad menu contents width and height to include the menu frame.
@@ -6042,7 +6275,7 @@ f_download_from_local_repository () {
       #
       if [ $ERROR -eq 0 ] ; then
          echo >$TEMP_FILE
-         echo "Successful Update of file \"$3\" to latest version." >>$TEMP_FILE
+         echo "Successful copy of file \"$3\" to latest version." >>$TEMP_FILE
          echo >>$TEMP_FILE
          echo "Script must be re-started to use the latest version." >>$TEMP_FILE
          echo "____________________________________________________" >>$TEMP_FILE
